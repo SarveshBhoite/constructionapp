@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Worker {
+  id              String   @id @default(uuid())
+  name            String
+  phone           String   @unique
+  email           String?
+  address         String?
+  city            String
+  state           String
+  category        String   // Category ID (e.g., 'mason')
+  categoryEn      String   // English Name
+  categoryMr      String   // Marathi/Hindi Name
+  experienceYears Int
+  wages           Float
+  wageType        String   // 'HOUR' or 'DAY'
+  profileImage    String?
+  rating          Float    @default(4.5)
+  isAvailable     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Contractor {
+  id           String   @id @default(uuid())
+  name         String
+  companyName  String?
+  phone        String   @unique
+  isSubscribed Boolean  @default(false)
+  subExpiresAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Subscription {
+  id            String   @id @default(uuid())
+  contractorId  String
+  razorpayOrderId String
+  razorpayPaymentId String?
+  amount        Float
+  status        String   // 'PENDING', 'SUCCESS', 'FAILED'
+  createdAt     DateTime @default(now())
+}

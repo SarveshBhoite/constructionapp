@@ -1,0 +1,53 @@
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+require("dotenv").config();
+const prisma = require("./src/lib/prisma");
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+app.use(morgan("dev"));
+
+// Basic Health Check
+app.get("/health", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", database: "connected", timestamp: new Date() });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
+// Import Routes
+const workerRoutes = require("./src/routes/worker.routes");
+const paymentRoutes = require("./src/routes/payment.routes");
+const authRoutes = require("./src/routes/auth.routes");
+
+app.use("/api/workers", workerRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/auth", authRoutes);
+
+const server = app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// Keep-alive to prevent premature exit with Prisma 7 Driver Adapters
+setInterval(() => {}, 1000 * 60 * 60);
+
+// Global Error Handlers
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.error(err.name, err.message, err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error(err);
+  server.close(() => {
+    process.exit(1);
+  });
+});
