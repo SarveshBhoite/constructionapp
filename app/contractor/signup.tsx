@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { FileText, Camera, ChevronLeft, Building2 } from 'lucide-react-native';
 import { uploadImage } from '../../src/services/cloudinary';
+import axios from 'axios';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function ContractorSignup() {
   const router = useRouter();
@@ -31,12 +34,31 @@ export default function ContractorSignup() {
       return;
     }
 
+    console.log('--- SIGNUP BUTTON CLICKED ---');
+    console.log('Company:', companyName);
+    console.log('Phone:', phone);
+
     setLoading(true);
     try {
+      console.log('1. Starting Cloudinary Upload...');
       const docUrl = await uploadImage(document);
-      console.log('Contractor Signup Details:', { companyName, phone, city, docUrl });
+      console.log('2. Cloudinary Success:', docUrl);
       
-      // Move to "Under Review" state
+      const payload = {
+        name: companyName,
+        phone,
+        companyName,
+        city,
+        idProof: docUrl
+      };
+
+      console.log('3. Sending to Backend:', `${API_URL}/auth/register/contractor`);
+      console.log('Payload:', payload);
+
+      // SAVE TO DATABASE
+      const response = await axios.post(`${API_URL}/auth/register/contractor`, payload);
+
+      console.log('4. Backend Success:', response.data);
       router.push('/contractor/pending');
     } catch (error) {
       Alert.alert('Upload Failed', 'There was an issue uploading your documents. Please try again.');

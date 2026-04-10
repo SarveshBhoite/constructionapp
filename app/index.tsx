@@ -12,9 +12,13 @@ export default function WelcomeScreen() {
   // Auto-redirect if logged in
   useEffect(() => {
     if (isLoggedIn && role) {
-      if (role === 'labour') router.replace('/labour/home');
-      else if (role === 'contractor') router.replace('/contractor/home');
-      else if (role === 'admin') router.replace('/admin/dashboard');
+      // Use a small delay to ensure the layout is mounted
+      const timer = setTimeout(() => {
+        if (role === 'labour') router.replace('/labour/home');
+        else if (role === 'contractor') router.replace('/contractor/home');
+        else if (role === 'admin') router.replace('/admin/dashboard');
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isLoggedIn, role]);
 

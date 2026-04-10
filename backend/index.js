@@ -25,10 +25,18 @@ app.get("/health", async (req, res) => {
 const workerRoutes = require("./src/routes/worker.routes");
 const paymentRoutes = require("./src/routes/payment.routes");
 const authRoutes = require("./src/routes/auth.routes");
+const adminRoutes = require("./src/routes/admin.routes");
 
 app.use("/api/workers", workerRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+
+// Catch-all for 404s to help debugging
+app.use((req, res, next) => {
+  console.log(`404 Check - Path: ${req.path} | Original: ${req.originalUrl}`);
+  res.status(404).json({ error: `Path ${req.originalUrl} not found` });
+});
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

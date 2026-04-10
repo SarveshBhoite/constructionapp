@@ -85,4 +85,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Increment View Count
+router.post("/view/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.worker.update({
+      where: { id },
+      data: { views: { increment: 1 } },
+    });
+    res.json({ message: "View counted" });
+  } catch (error) {
+    console.error("Increment View Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get Single Worker
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const worker = await prisma.worker.findUnique({
+      where: { id },
+    });
+    res.json(worker);
+  } catch (error) {
+    console.error("Fetch Worker Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

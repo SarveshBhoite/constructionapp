@@ -1,23 +1,43 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Image, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ShieldCheck, LogOut, CheckCircle2, XCircle, FileText, ChevronRight, Search, Activity, Users, Building } from 'lucide-react-native';
+import { ShieldCheck, LogOut, CheckCircle2, XCircle, FileText, ChevronRight, Users, Building, AlertTriangle, Activity } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
+import axios from 'axios';
 
-// Mock Data for Pending Contractors
-const PENDING_CONTRACTORS = [
-  { id: '1', name: 'Royal Construction', owner: 'Vikram Singh', city: 'Mumbai', docUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=600', submittedAt: '2h ago' },
-  { id: '2', name: 'Shiv Builders', owner: 'Amol Shinde', city: 'Pune', docUrl: 'https://images.unsplash.com/photo-1632833073422-9214d02340d8?auto=format&fit=crop&q=80&w=600', submittedAt: '5h ago' },
-  { id: '3', name: 'National Infra', owner: 'John Dsouza', city: 'Nagpur', docUrl: 'https://images.unsplash.com/photo-1541888946425-d81bb19480c5?auto=format&fit=crop&q=80&w=600', submittedAt: '1d ago' },
-];
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
-  const [contractors, setContractors] = useState(PENDING_CONTRACTORS);
+  const [contractors, setContractors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
 
-  const handleAction = (id: string, action: 'approve' | 'reject') => {
+  const fetchPendingContractors = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/pending-contractors`);
+      setContractors(response.data);
+    } catch (error) {
+      console.error('Fetch Error:', error);
+      Alert.alert('Error', 'Failed to fetch pending contractors.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingContractors();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPendingContractors();
+  };
+
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
     Alert.alert(
       `${action.charAt(0).toUpperCase() + action.slice(1)} Contractor?`,
       `Are you sure you want to ${action} this contractor's application?`,
@@ -25,12 +45,19 @@ export default function AdminDashboard() {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Confirm', 
-          onPress: () => {
-            setContractors(prev => prev.filter(c => c.id !== id));
-            Alert.alert(
-                action === 'approve' ? 'Approved!' : 'Rejected!',
-                `Contractor has been ${action}d successfully.`
-            );
+          onPress: async () => {
+              try {
+                if (action === 'approve') {
+                    await axios.post(`${API_URL}/admin/approve-contractor/${id}`);
+                } else {
+                    await axios.delete(`${API_URL}/admin/reject-contractor/${id}`);
+                }
+                
+                setContractors(prev => prev.filter(c => c.id !== id));
+                Alert.alert('Success', `Contractor has been ${action}d.`);
+              } catch (error) {
+                Alert.alert('Error', `Failed to ${action} contractor.`);
+              }
           } 
         }
       ]
@@ -53,92 +80,108 @@ export default function AdminDashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
+        {/* Stats Summary */}
         <View className="flex-row justify-between mb-8">
-            <View className="bg-blue-600 p-5 rounded-[32px] flex-1 mr-2 shadow-lg shadow-blue-200">
+            <View className="bg-blue-600 p-6 rounded-[32px] flex-1 mr-3 shadow-xl shadow-blue-200">
                 <Users color="white" size={24} />
-                <Text className="text-white/60 mt-3 font-medium">New Labours</Text>
-                <Text className="text-white text-2xl font-bold">124</Text>
+                <Text className="text-white/60 mt-3 font-medium">Pending Review</Text>
+                <Text className="text-white text-3xl font-black">{contractors.length}</Text>
             </View>
-            <View className="bg-slate-800 p-5 rounded-[32px] flex-1 ml-2 shadow-lg shadow-slate-300">
-                <Building color="white" size={24} />
-                <Text className="text-white/60 mt-3 font-medium">Contractors</Text>
-                <Text className="text-white text-2xl font-bold">{contractors.length} Pending</Text>
+            <View className="bg-slate-800 p-6 rounded-[32px] flex-1 ml-3 shadow-xl shadow-slate-300">
+                <Activity color="#10B981" size={24} />
+                <Text className="text-white/60 mt-3 font-medium">Status</Text>
+                <Text className="text-white text-3xl font-black">Active</Text>
             </View>
         </View>
 
         <Text className="text-xl font-bold text-slate-800 mb-6">Approval Queue</Text>
       </View>
 
-      <FlatList
-        data={contractors}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-        renderItem={({ item }) => (
-          <View className="bg-white p-6 rounded-[32px] mb-6 shadow-sm border border-slate-100">
-            <View className="flex-row justify-between items-start mb-4">
-                <View className="flex-row items-center">
-                    <View className="bg-slate-100 p-3 rounded-2xl mr-4">
-                        <FileText color="#64748B" size={24} />
-                    </View>
-                    <View>
-                        <Text className="text-xl font-bold text-slate-800">{item.name}</Text>
-                        <Text className="text-slate-500 font-medium">{item.owner} • {item.city}</Text>
+      {loading ? (
+          <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#1E40AF" />
+              <Text className="text-slate-400 mt-4">Loading queue...</Text>
+          </View>
+      ) : (
+          <FlatList
+            data={contractors}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} color="#1E40AF" />
+            }
+            renderItem={({ item }) => (
+              <View className="bg-white p-6 rounded-[40px] mb-6 shadow-sm border border-slate-100">
+                <View className="flex-row justify-between items-start mb-6">
+                    <View className="flex-row items-center flex-1">
+                        <View className="bg-blue-50 p-4 rounded-3xl mr-4">
+                            <Building color="#1E40AF" size={28} />
+                        </View>
+                        <View className="flex-1">
+                            <Text className="text-2xl font-bold text-slate-800" numberOfLines={1}>{item.companyName || item.name}</Text>
+                            <Text className="text-slate-500 font-medium">Owner: {item.name}</Text>
+                        </View>
                     </View>
                 </View>
-                <Text className="text-xs font-bold text-slate-400">{item.submittedAt}</Text>
-            </View>
 
-            <TouchableOpacity 
-                onPress={() => setSelectedDoc(item.docUrl)}
-                className="w-full bg-slate-50 p-4 rounded-2xl flex-row items-center mb-6 border border-slate-100"
-            >
-                <Image source={{ uri: item.docUrl }} className="w-12 h-12 rounded-xl" />
-                <View className="flex-1 ml-4">
-                    <Text className="text-slate-700 font-bold">Registration Doc.jpg</Text>
-                    <Text className="text-slate-400 text-xs">Verify business license</Text>
+                <View className="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
+                    <View className="flex-row items-center mb-3">
+                        <FileText color="#64748B" size={18} />
+                        <Text className="text-slate-800 font-bold ml-2 text-lg">Identity Verification</Text>
+                    </View>
+                    
+                    {item.idProof ? (
+                        <TouchableOpacity 
+                            onPress={() => setSelectedDoc(item.idProof)}
+                            className="w-full h-40 rounded-2xl overflow-hidden mb-4 border border-slate-200"
+                        >
+                            <Image source={{ uri: item.idProof }} className="w-full h-full" resizeMode="cover" />
+                            <View className="absolute bottom-3 right-3 bg-black/40 px-3 py-1 rounded-full">
+                                <Text className="text-white text-[10px] font-bold uppercase">View Full</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ) : (
+                        <View className="bg-slate-100 h-40 rounded-2xl items-center justify-center mb-4 border border-dashed border-slate-300">
+                            <Text className="text-slate-400">No document uploaded</Text>
+                        </View>
+                    )}
+
+                    <Text className="text-slate-400 mb-4">Contractor phone: {item.phone}</Text>
+                    <View className="flex-row items-center">
+                        <AlertTriangle color="#F59E0B" size={16} />
+                        <Text className="text-amber-600 text-xs font-bold ml-1 uppercase">Pending Approval</Text>
+                    </View>
                 </View>
-                <ChevronRight color="#CBD5E1" size={20} />
-            </TouchableOpacity>
 
-            <View className="flex-row space-x-3 gap-2">
-                <TouchableOpacity 
-                    onPress={() => handleAction(item.id, 'reject')}
-                    className="flex-1 bg-red-50 p-4 rounded-2xl flex-row items-center justify-center border border-red-100"
-                >
-                    <XCircle color="#EF4444" size={20} />
-                    <Text className="text-red-600 font-bold ml-2">Reject</Text>
-                </TouchableOpacity>
+                <View className="flex-row space-x-4">
+                    <TouchableOpacity 
+                        onPress={() => handleAction(item.id, 'reject')}
+                        className="flex-1 bg-white p-5 rounded-2xl items-center justify-center border border-red-200"
+                    >
+                        <Text className="text-red-500 font-bold text-lg">Reject</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity 
-                    onPress={() => handleAction(item.id, 'approve')}
-                    className="flex-1 bg-green-500 p-4 rounded-2xl flex-row items-center justify-center shadow-lg shadow-green-200"
-                >
-                    <CheckCircle2 color="white" size={20} />
-                    <Text className="text-white font-bold ml-2">Approve</Text>
-                </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-            <View className="items-center mt-20">
-                <ShieldCheck size={64} color="#10B981" />
-                <Text className="text-slate-800 font-bold text-xl mt-6">All Caught Up!</Text>
-                <Text className="text-slate-400 text-center mt-2 px-8">There are no pending contractor applications to review at this moment.</Text>
-            </View>
-        }
-      />
-
-      {/* Document Viewer Modal */}
-      {selectedDoc && (
-          <View className="absolute inset-0 bg-black/90 items-center justify-center p-6" onTouchStart={() => setSelectedDoc(null)}>
-              <TouchableOpacity className="absolute top-12 right-6 p-4">
-                  <XCircle color="white" size={32} />
-              </TouchableOpacity>
-              <Image source={{ uri: selectedDoc }} className="w-full h-2/3 rounded-3xl" resizeMode="contain" />
-              <Text className="text-white font-bold text-xl mt-8">Reviewing Document</Text>
-              <Text className="text-white/60 text-center mt-2">Tap anywhere to close</Text>
-          </View>
+                    <TouchableOpacity 
+                        onPress={() => handleAction(item.id, 'approve')}
+                        className="flex-1 bg-blue-600 p-5 rounded-2xl items-center justify-center shadow-lg shadow-blue-500/20"
+                    >
+                        <Text className="text-white font-bold text-lg">Approve</Text>
+                    </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            ListEmptyComponent={
+                <View className="items-center mt-20">
+                    <View className="bg-emerald-100 p-8 rounded-full mb-6">
+                        <ShieldCheck size={64} color="#059669" />
+                    </View>
+                    <Text className="text-slate-800 font-bold text-2xl mt-4">All Caught Up!</Text>
+                    <Text className="text-slate-400 text-center mt-2 px-12 text-lg">
+                        There are no pending contractor applications to review at this moment.
+                    </Text>
+                </View>
+            }
+          />
       )}
     </SafeAreaView>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info } from 'lucide-react-native';
+import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { CATEGORIES } from '../../src/constants/categories';
 import { useAuthStore } from '../../src/store/authStore';
@@ -14,9 +14,8 @@ const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_S1OGtZ
 export default function ContractorHome() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
-  const user = useAuthStore((state) => state.user); // Assuming user contains contractor info
+  const { user, setAuth } = useAuthStore();
   
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLabour, setSelectedLabour] = useState<any>(null);
@@ -25,7 +24,15 @@ export default function ContractorHome() {
 
   useEffect(() => {
     fetchWorkers();
+    fetchProfile();
   }, [selectedCategory, searchQuery]);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/auth/profile/contractor/${user.id}`);
+      setAuth('contractor', response.data);
+    } catch (e) {}
+  };
 
   const fetchWorkers = async () => {
     setLoading(true);
@@ -79,7 +86,8 @@ export default function ContractorHome() {
                     ...data,
                     contractorId: user?.id || 'default-contractor'
                 });
-                setIsSubscribed(true);
+                // Update local auth store with new subscription status
+                setAuth('contractor', { ...user, isSubscribed: true });
                 Alert.alert('Success!', 'Your subscription is now active! You can now see mobile numbers.');
             } catch (err) {
                 Alert.alert('Error', 'Payment verification failed.');
@@ -103,12 +111,42 @@ export default function ContractorHome() {
         <View className="flex-row justify-between items-center mb-6">
           <View>
             <Text className="text-slate-500 font-medium">Contractor Panel</Text>
-            <Text className="text-2xl font-bold text-slate-900">Royal Construction</Text>
+            <Text className="text-2xl font-bold text-slate-900">{user?.name || 'Welcome'}</Text>
           </View>
           <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
             <LogOut color="#1E40AF" size={20} />
           </TouchableOpacity>
         </View>
+
+        {/* Subscription Alert Banner */}
+        {!user?.isSubscribed && (
+            <TouchableOpacity 
+                onPress={() => Alert.alert('Subscription', 'Subscribe to unlock worker contact details!')}
+                className="bg-blue-600 p-6 rounded-[32px] mb-8 flex-row items-center border border-blue-400 shadow-xl shadow-blue-200"
+            >
+                <View className="bg-white/20 p-3 rounded-2xl mr-4">
+                    <ShieldCheck color="white" size={24} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-white font-bold text-lg">Subscription Required</Text>
+                    <Text className="text-white/80">You cannot see worker phone numbers until you subscribe.</Text>
+                </View>
+                <ChevronRight color="white" size={20} />
+            </TouchableOpacity>
+        )}
+
+        {/* Approval Alert if not approved */}
+        {!user?.isApproved && (
+            <View className="bg-amber-100 p-6 rounded-[32px] mb-8 flex-row items-center border border-amber-200">
+                <View className="bg-amber-200 p-3 rounded-2xl mr-4">
+                    <CheckCircle color="#D97706" size={24} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-amber-800 font-bold text-lg">Verification Pending</Text>
+                    <Text className="text-amber-700">Admin is currently reviewing your account.</Text>
+                </View>
+            </View>
+        )}
 
         {/* Search */}
         <View className="flex-row items-center space-x-3 mb-6">
@@ -146,7 +184,7 @@ export default function ContractorHome() {
       </View>
 
       {/* Subscription Banner */}
-      {!isSubscribed && (
+      {!user?.isSubscribed && (
         <View className="mx-6 mb-6 bg-slate-900 p-6 rounded-[32px] flex-row items-center justify-between shadow-xl">
           <View className="flex-1 mr-4">
             <Text className="text-white font-bold text-lg mb-1">Unlock All Contacts</Text>
@@ -173,7 +211,11 @@ export default function ContractorHome() {
                 contentContainerStyle={{ paddingBottom: 120 }}
                 renderItem={({ item }) => (
                 <TouchableOpacity 
-                    onPress={() => setSelectedLabour(item)}
+                    onPress={async () => {
+                      setSelectedLabour(item);
+                      // Increment View Count
+                      try { await axios.post(`${API_URL}/workers/view/${item.id}`); } catch (e) {}
+                    }}
                     className="bg-white p-5 rounded-[32px] mb-6 shadow-sm border border-slate-100 flex-row items-center"
                 >
                     <Image source={{ uri: item.profileImage || `https://ui-avatars.com/api/?name=${item.name}&background=1E40AF&color=fff` }} className="w-20 h-20 rounded-2xl mr-5" />
@@ -245,26 +287,43 @@ export default function ContractorHome() {
                 {/* Contact Area */}
                 <View className="bg-slate-900 p-8 rounded-[40px] items-center shadow-2xl mb-10">
                   <Text className="text-white/50 mb-3 font-bold uppercase text-xs tracking-widest text-center">Contact Verified Worker</Text>
-                  {isSubscribed ? (
+                  
+                  {user?.isSubscribed && selectedLabour.isSubscribed ? (
                     <Text className="text-white text-4xl font-bold mb-6 tracking-tighter">
                       +91 {selectedLabour.phone}
                     </Text>
                   ) : (
-                    <Text className="text-white text-4xl font-bold mb-6 blur-md opacity-20">
-                      +91 XXXXX XXXXX
-                    </Text>
+                    <View className="items-center">
+                        <Text className="text-white text-4xl font-bold mb-2 blur-md opacity-20">
+                        +91 XXXXX XXXXX
+                        </Text>
+                        <Text className="text-blue-400 text-xs font-bold mb-6 text-center px-4">
+                            {!user?.isSubscribed ? "Subscribe to unlock details" : "Worker subscription expired"}
+                        </Text>
+                    </View>
                   )}
                   
-                  {!isSubscribed ? (
+                  {!(user?.isSubscribed && selectedLabour.isSubscribed) ? (
                     <TouchableOpacity 
-                        onPress={handleSubscribe}
+                        onPress={() => {
+                            if (!user?.isSubscribed) {
+                                handleSubscribe();
+                            } else {
+                                Alert.alert("Not Contactable", "This worker's subscription has expired and their contact details are currently hidden.");
+                            }
+                        }}
                         className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400"
                     >
                       <CreditCard color="white" size={24} />
-                      <Text className="text-white font-bold text-xl ml-3">Subscribe to View</Text>
+                      <Text className="text-white font-bold text-xl ml-3">
+                          {!user?.isSubscribed ? "Subscribe to View" : "Hidden"}
+                      </Text>
                     </TouchableOpacity>
                   ) : (
-                    <TouchableOpacity className="bg-emerald-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-green-400">
+                    <TouchableOpacity 
+                        onPress={() => Linking.openURL(`tel:+91${selectedLabour.phone}`)}
+                        className="bg-emerald-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-green-400"
+                    >
                       <Phone color="white" size={24} />
                       <Text className="text-white font-bold text-xl ml-3">Call Now</Text>
                     </TouchableOpacity>

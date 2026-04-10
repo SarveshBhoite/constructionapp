@@ -26,6 +26,9 @@ model Worker {
   profileImage    String?
   rating          Float    @default(4.5)
   isAvailable     Boolean  @default(true)
+  isSubscribed    Boolean  @default(false)
+  subExpiresAt    DateTime?
+  views           Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -36,6 +39,8 @@ model Contractor {
   companyName  String?
   phone        String   @unique
   isSubscribed Boolean  @default(false)
+  isApproved   Boolean  @default(false)
+  idProof      String?  // Document URL for admin review
   subExpiresAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -43,7 +48,9 @@ model Contractor {
 
 model Subscription {
   id            String   @id @default(uuid())
-  contractorId  String
+  role          String   // 'worker' or 'contractor'
+  userId        String?
+  contractorId  String?
   razorpayOrderId String
   razorpayPaymentId String?
   amount        Float
