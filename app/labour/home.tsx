@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageCircle, Star, AlertCircle, Eye } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
+import * as Linking from 'expo-linking';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -43,9 +44,36 @@ export default function LabourHome() {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Upgrade Now', 
-          onPress: () => {
-            // Integrate Razorpay flow
-            Alert.alert('Payment System', 'Razorpay Integration coming soon!');
+          onPress: async () => {
+            try {
+              // Create REAL Payment Link
+              const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
+                amount: 200,
+                workerId: user?.id
+              });
+              
+              Alert.alert(
+                'Upgrade Profile',
+                'Opening the REAL Razorpay Payment page for your Featured Profile upgrade.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                        text: 'Open Payment Page', 
+                        onPress: () => {
+                            Linking.openURL(linkRes.data.url);
+                            // Verify after return
+                            setTimeout(() => {
+                                Alert.alert('Verification', 'Check your upgrade status?', [
+                                    { text: 'Verify', onPress: fetchProfile }
+                                ]);
+                            }, 2000);
+                        } 
+                    }
+                ]
+              );
+            } catch (e) {
+              Alert.alert('Error', 'Could not initiate payment.');
+            }
           } 
         }
       ]

@@ -38,6 +38,7 @@ export default function LabourSignup() {
   const [wageType, setWageType] = useState<'HOUR' | 'DAY'>('DAY');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [image, setImage] = useState<string | null>(null);
+  const [about, setAbout] = useState('');
   const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
@@ -85,6 +86,7 @@ export default function LabourSignup() {
         wages: parseFloat(wages),
         wageType,
         profileImage: imageUrl,
+        about: about || `Experienced ${categoryObj.en.toLowerCase()} specializing in professional construction services.`
       };
 
       await axios.post(`${API_URL}/workers/register`, payload);
@@ -253,6 +255,19 @@ export default function LabourSignup() {
               </TouchableOpacity>
             );
           })}
+        </View>
+
+        {/* About You Section */}
+        <View className="mb-10">
+          <Text className="text-slate-800 font-bold mb-2 ml-1 text-lg">About You (तुमच्या बद्दल माहिती)</Text>
+          <TextInput
+            placeholder="e.g. 5+ years of experience in high-quality plumbing..."
+            value={about}
+            onChangeText={setAbout}
+            multiline
+            numberOfLines={4}
+            className="bg-slate-50 p-5 rounded-3xl border border-slate-200 text-lg min-h-[120px] text-top"
+          />
         </View>
 
         <TouchableOpacity

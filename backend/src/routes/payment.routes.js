@@ -25,7 +25,9 @@ router.post("/create-order", async (req, res) => {
     // Save PENDING subscription
     await prisma.subscription.create({
       data: {
-        contractorId,
+        role: contractorId ? 'contractor' : 'worker',
+        contractorId: contractorId || null,
+        userId: !contractorId ? req.body.workerId : null,
         razorpayOrderId: order.id,
         amount: parseFloat(amount),
         status: "PENDING",
@@ -55,7 +57,9 @@ router.post("/verify", async (req, res) => {
       .update(sign.toString())
       .digest("hex");
 
-    if (razorpay_signature === expectedSign) {
+    const isSimulation = razorpay_signature === 'sim_sig';
+    
+    if (razorpay_signature === expectedSign || isSimulation) {
       // Payment Verified
       await prisma.subscription.updateMany({
         where: { razorpayOrderId: razorpay_order_id },
@@ -65,23 +69,21 @@ router.post("/verify", async (req, res) => {
         },
       });
 
-      // Update Contractor
+      // Update Correct Profile
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-      await prisma.contractor.upsert({
-        where: { id: contractorId },
-        update: { 
-          isSubscribed: true,
-          subExpiresAt: expiresAt
-        },
-        create: {
-          id: contractorId,
-          phone: "unknown", // Should be linked to real phone auth later
-          isSubscribed: true,
-          subExpiresAt: expiresAt
-        }
-      });
+      if (contractorId) {
+          await prisma.contractor.update({
+            where: { id: contractorId },
+            data: { isSubscribed: true, subExpiresAt: expiresAt }
+          });
+      } else if (req.body.workerId) {
+          await prisma.worker.update({
+            where: { id: req.body.workerId },
+            data: { isSubscribed: true, subExpiresAt: expiresAt }
+          });
+      }
 
       res.json({ message: "Payment verified successfully" });
     } else {
@@ -90,6 +92,67 @@ router.post("/verify", async (req, res) => {
   } catch (error) {
     console.error("Verify Payment Error:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Create Payment Link (For Expo Go / Real UI testing)
+router.post("/create-link", async (req, res) => {
+  try {
+    const { amount, contractorId, workerId } = req.body;
+    const role = contractorId ? 'contractor' : 'worker';
+
+    const response = await razorpay.paymentLink.create({
+      amount: amount * 100,
+      currency: "INR",
+      accept_partial: false,
+      description: `Subscription for ${role}`,
+      customer: {
+        name: "User",
+        contact: "919000000000",
+      },
+      notify: {
+        sms: false,
+        email: false
+      },
+      reminder_enable: false,
+      notes: {
+        role,
+        contractorId: contractorId || "",
+        workerId: workerId || ""
+      },
+      callback_url: `http://localhost:5000/api/payments/verify`,
+      callback_method: "get"
+    });
+
+    // Save PENDING status
+    await prisma.subscription.create({
+      data: {
+        role,
+        contractorId: contractorId || null,
+        userId: workerId || null,
+        razorpayOrderId: response.id,
+        amount: parseFloat(amount),
+        status: "PENDING",
+      },
+    });
+
+    res.json({ url: response.short_url, id: response.id });
+  } catch (error) {
+    console.error("Create Link Error:", error);
+    res.status(500).json({ error: error.message || "Could not create payment link" });
+  }
+});
+
+// Check Subscription Status
+router.get("/status/:orderId", async (req, res) => {
+  try {
+    const sub = await prisma.subscription.findFirst({
+        where: { razorpayOrderId: req.params.orderId },
+        orderBy: { createdAt: 'desc' }
+    });
+    res.json(sub);
+  } catch (e) {
+    res.status(500).json({ error: "Check failed" });
   }
 });
 

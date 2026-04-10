@@ -8,7 +8,7 @@ router.post("/register", async (req, res) => {
     const { 
       name, phone, email, address, city, state, 
       category, categoryEn, categoryMr, 
-      experienceYears, wages, wageType, profileImage 
+      experienceYears, wages, wageType, profileImage, about 
     } = req.body;
 
     // Validation
@@ -35,6 +35,7 @@ router.post("/register", async (req, res) => {
         wages: parseFloat(wages),
         wageType,
         profileImage,
+        about
       },
     });
 

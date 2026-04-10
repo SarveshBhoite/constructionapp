@@ -21,6 +21,7 @@ model Worker {
   categoryEn      String   // English Name
   categoryMr      String   // Marathi/Hindi Name
   experienceYears Int
+  about           String?
   wages           Float
   wageType        String   // 'HOUR' or 'DAY'
   profileImage    String?

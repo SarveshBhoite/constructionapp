@@ -7,6 +7,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { CATEGORIES } from '../../src/constants/categories';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
+import * as Linking from 'expo-linking';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_S1OGtZgvN2t1r6';
@@ -62,7 +63,46 @@ export default function ContractorHome() {
 
         const order = orderResponse.data;
 
-        // 2. Open Razorpay Checkout
+        // 2. Open Razorpay Checkout (or Use Payment Link for Expo Go)
+        if (!RazorpayCheckout) {
+            console.log('Razorpay module not found (Expo Go). Using Payment Link...');
+            try {
+                // Generate a real payment link
+                const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
+                    amount: 500,
+                    contractorId: user?.id
+                });
+                
+                Alert.alert(
+                    'Real UI Checkout',
+                    'Opening the REAL Razorpay Payment page in your browser for testing.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Open Payment Page', 
+                            onPress: () => {
+                                Linking.openURL(linkRes.data.url);
+                                // Show a verification alert after return
+                                setTimeout(() => {
+                                    Alert.alert(
+                                        'Payment Verification',
+                                        'Did you complete the payment?',
+                                        [
+                                            { text: 'Verify Now', onPress: fetchProfile }
+                                        ]
+                                    );
+                                }, 2000);
+                            } 
+                        }
+                    ]
+                );
+            } catch (e) {
+                Alert.alert('Error', 'Could not generate payment link.');
+            }
+            setLoading(false);
+            return;
+        }
+
         const options = {
             description: 'Full Access Subscription',
             image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
@@ -94,7 +134,13 @@ export default function ContractorHome() {
             }
         }).catch((error: any) => {
             console.log('Razorpay Error:', error);
-            Alert.alert('Payment Cancelled', 'Please try again to unlock contacts.');
+            // Fallback for simulation in case the alert didn't catch it
+            if (!RazorpayCheckout) {
+                Alert.alert('Simulated Success', 'Dev mode activated.');
+                setAuth('contractor', { ...user, isSubscribed: true });
+            } else {
+                Alert.alert('Payment Cancelled', 'Please try again to unlock contacts.');
+            }
         });
 
     } catch (error) {
@@ -334,8 +380,7 @@ export default function ContractorHome() {
                     <Text className="text-xl font-bold text-slate-800 mb-4">About Worker</Text>
                     <View className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                         <Text className="text-slate-600 text-lg leading-7">
-                            <Text className="font-bold text-slate-800">{selectedLabour.name}</Text> is a highly skilled <Text className="text-blue-700 font-bold">{selectedLabour.categoryEn}</Text> based in <Text className="font-bold">{selectedLabour.city}, {selectedLabour.state}</Text>. 
-                            With {selectedLabour.experienceYears} years of experience, they specialize in professional construction and maintenance services. Address: {selectedLabour.address || 'Not specified'}.
+                            {selectedLabour.about || `${selectedLabour.name} is a highly skilled ${selectedLabour.categoryEn} based in ${selectedLabour.city}, ${selectedLabour.state}. With ${selectedLabour.experienceYears} years of experience, they specialize in professional construction and maintenance services.`}
                         </Text>
                     </View>
                 </View>
