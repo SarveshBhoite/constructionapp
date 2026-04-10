@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ShieldAlert, Lock, ChevronLeft, UserCircle } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 
 export default function AdminLogin() {
   const router = useRouter();
-  const login = useAuthStore((state) => state.login);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function AdminLogin() {
     if (username === 'admin' && password === 'admin123') {
       setLoading(true);
       setTimeout(() => {
-        login();
+        setAuth('admin', { id: 'admin-1', name: 'System Admin' });
         router.replace('/admin/dashboard');
         setLoading(false);
       }, 1000);

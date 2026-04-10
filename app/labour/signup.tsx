@@ -69,6 +69,7 @@ export default function LabourSignup() {
     try {
       const imageUrl = await uploadImage(image);
       const categoryObj = CATEGORIES.find(c => c.id === selectedCategory);
+      if (!categoryObj) throw new Error('Invalid Category');
 
       const payload = {
         name,
@@ -78,8 +79,8 @@ export default function LabourSignup() {
         address,
         email,
         category: selectedCategory,
-        categoryEn: categoryObj?.en,
-        categoryMr: categoryObj?.mr,
+        categoryEn: categoryObj.en,
+        categoryMr: categoryObj.mr,
         experienceYears: parseInt(experience) || 0,
         wages: parseFloat(wages),
         wageType,

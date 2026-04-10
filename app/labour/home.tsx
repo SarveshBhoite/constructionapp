@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageCircle, Star, MapPin } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';

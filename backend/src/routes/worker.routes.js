@@ -44,7 +44,8 @@ router.post("/register", async (req, res) => {
     if (error.code === 'P2002') {
       return res.status(400).json({ error: "Phone number already registered" });
     }
-    res.status(500).json({ error: "Internal server error" });
+    // Return the actual error message to the frontend for easier debugging
+    res.status(500).json({ error: error.message || "Internal server error" });
   }
 });
 
