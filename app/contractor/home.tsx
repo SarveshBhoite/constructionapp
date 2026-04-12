@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck } from 'lucide-react-native';
+import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { CATEGORIES } from '../../src/constants/categories';
 import { useAuthStore } from '../../src/store/authStore';
@@ -44,6 +44,23 @@ export default function ContractorHome() {
       } catch (e) {}
   };
 
+  const fetchWorkers = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/workers`, {
+        params: {
+          category: selectedCategory,
+          query: searchQuery
+        }
+      });
+      setLabours(response.data);
+    } catch (error) {
+      console.error("Fetch Workers Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchWorkers();
     fetchProfile();
@@ -65,6 +82,70 @@ export default function ContractorHome() {
       } catch (e) {
           Alert.alert('Error', 'Could not submit rating.');
       }
+  };
+
+  const handleSubscribe = async () => {
+    try {
+        setLoading(true);
+        // 1. Create Order on Backend
+        const orderResponse = await axios.post(`${API_URL}/payments/create-order`, {
+            amount: 500,
+            contractorId: user?.id || 'default-contractor'
+        });
+
+        const order = orderResponse.data;
+
+        // 2. Open Razorpay Checkout (or Use Payment Link for Expo Go)
+        if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
+            try {
+                const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
+                    amount: 500,
+                    contractorId: user?.id
+                });
+                Linking.openURL(linkRes.data.url);
+            } catch (e) {
+                Alert.alert('Error', 'Could not generate payment link.');
+            }
+            setLoading(false);
+            return;
+        }
+
+        const options = {
+            description: 'Full Access Subscription',
+            image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+            currency: 'INR',
+            key: RAZORPAY_KEY,
+            amount: order.amount,
+            name: 'Royal Construction',
+            order_id: order.id,
+            prefill: {
+                email: 'contractor@example.com',
+                contact: '919000000000',
+                name: user?.name || 'Contractor'
+            },
+            theme: { color: '#1E40AF' }
+        };
+
+        RazorpayCheckout.open(options).then(async (data: any) => {
+            try {
+                await axios.post(`${API_URL}/payments/verify`, {
+                    ...data,
+                    contractorId: user?.id || 'default-contractor'
+                });
+                fetchProfile();
+                Alert.alert('Success!', 'Your subscription is now active!');
+            } catch (err) {
+                Alert.alert('Error', 'Payment verification failed.');
+            }
+        }).catch((error: any) => {
+            console.log('Razorpay Error:', error);
+        });
+
+    } catch (error) {
+        Alert.alert('Error', 'Could not initiate payment.');
+    } finally {
+        setLoading(false);
+    }
   };
 
   const submitSupport = async () => {
@@ -469,4 +550,3 @@ export default function ContractorHome() {
     </SafeAreaView>
   );
 }
-

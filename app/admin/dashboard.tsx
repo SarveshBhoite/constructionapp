@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Image, Alert, ActivityIndicator, RefreshControl, Modal, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ShieldCheck, LogOut, CheckCircle2, XCircle, FileText, ChevronRight, Users, Building, AlertTriangle, Activity } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
-import { Modal } from 'react-native';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 interface Contractor {
   id: string;
   name: string;
@@ -16,6 +16,13 @@ interface Contractor {
   isApproved: boolean;
 }
 
+export default function AdminDashboard() {
+  const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'contractors' | 'support'>('contractors');
   const [tickets, setTickets] = useState<any[]>([]);
 
@@ -47,6 +54,33 @@ interface Contractor {
     setRefreshing(true);
     if (activeTab === 'contractors') fetchPendingContractors();
     else fetchSupportTickets();
+  };
+
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
+    Alert.alert(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} Contractor?`,
+      `Are you sure you want to ${action} this contractor's application?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Confirm', 
+          onPress: async () => {
+              try {
+                if (action === 'approve') {
+                    await axios.post(`${API_URL}/admin/approve-contractor/${id}`);
+                } else {
+                    await axios.delete(`${API_URL}/admin/reject-contractor/${id}`);
+                }
+                
+                setContractors(prev => prev.filter(c => c.id !== id));
+                Alert.alert('Success', `Contractor has been ${action}d.`);
+              } catch (error) {
+                Alert.alert('Error', `Failed to ${action} contractor.`);
+              }
+          } 
+        }
+      ]
+    );
   };
 
   const updateTicketStatus = async (id: string, status: string) => {
@@ -119,9 +153,11 @@ interface Contractor {
                         </View>
                     </View>
                     <View className="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
-                        <TouchableOpacity onPress={() => setSelectedDoc(item.idProof || null)}>
-                            <Image source={{ uri: item.idProof }} className="w-full h-40 rounded-2xl mb-4" />
-                        </TouchableOpacity>
+                        {item.idProof && (
+                           <TouchableOpacity onPress={() => setSelectedDoc(item.idProof || null)}>
+                               <Image source={{ uri: item.idProof }} className="w-full h-40 rounded-2xl mb-4" />
+                           </TouchableOpacity>
+                        )}
                         <Text className="text-slate-400">Phone: {item.phone}</Text>
                     </View>
                     <View className="flex-row space-x-4">
@@ -169,9 +205,7 @@ interface Contractor {
             )}
           />
       )}
-    </SafeAreaView>
-  );
-}
+
       {/* Document Viewer Modal */}
       {selectedDoc && (
         <Modal animationType="fade" transparent={true} visible={!!selectedDoc}>

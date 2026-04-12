@@ -8,12 +8,17 @@ interface UserProfile {
   id: string;
   name: string;
   phone?: string;
+  email?: string;
   city?: string;
+  state?: string;
   profileImage?: string;
   companyName?: string;
+  categoryEn?: string;
+  categoryMr?: string;
   isSubscribed?: boolean;
   isApproved?: boolean;
   views?: number;
+  rating?: number;
   idProof?: string;
 }
 

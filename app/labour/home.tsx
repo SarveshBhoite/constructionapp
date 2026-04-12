@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image, ActivityIndicator, RefreshControl, Modal, FlatList, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageCircle, Star, AlertCircle, Eye } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
@@ -196,7 +196,7 @@ export default function LabourHome() {
                 <Text className="text-white font-bold text-xl">{dbUser?.name}</Text>
                 <View className="flex-row items-center mt-1">
                     <Star size={14} color="#FBBF24" fill="#FBBF24" />
-                    <Text className="text-white/70 ml-2 font-bold">{dbUser?.rating || 4.8} Rating</Text>
+                    <Text className="text-white/70 ml-2 font-bold">{dbUser?.rating || 0} Rating</Text>
                 </View>
             </View>
           </View>
