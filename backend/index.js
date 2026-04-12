@@ -11,13 +11,27 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Basic Health Check
+// Detailed Health Check for Debugging
 app.get("/health", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: "ok", database: "connected", timestamp: new Date() });
+    res.json({ 
+      status: "ok", 
+      database: "connected", 
+      timestamp: new Date(),
+      env: {
+        has_db_url: !!process.env.DATABASE_URL
+      }
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    console.error("DATABASE CONNECTION ERROR:", error);
+    res.status(500).json({ 
+      status: "error", 
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
