@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle, Menu } from 'lucide-react-native';
@@ -79,7 +79,7 @@ export default function ContractorHome() {
           });
           setUserRating(ratingValue);
           Alert.alert('Success', 'Rating submitted!');
-          fetchWorkers(); // Refresh list to show new rating
+          fetchWorkers(); 
       } catch (e) {
           Alert.alert('Error', 'Could not submit rating.');
       }
@@ -92,7 +92,6 @@ export default function ContractorHome() {
             amount: 500,
             contractorId: user?.id || 'default-contractor'
         });
-
         const order = orderResponse.data;
 
         if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
@@ -115,14 +114,14 @@ export default function ContractorHome() {
             currency: 'INR',
             key: RAZORPAY_KEY,
             amount: order.amount,
-            name: 'Royal Construction',
+            name: 'Royal Connect',
             order_id: order.id,
             prefill: {
                 email: 'contractor@example.com',
                 contact: '919000000000',
                 name: user?.name || 'Contractor'
             },
-            theme: { color: '#1E40AF' }
+            theme: { color: '#2563EB' }
         };
 
         RazorpayCheckout.open(options).then(async (data: any) => {
@@ -139,7 +138,6 @@ export default function ContractorHome() {
         }).catch((error: any) => {
             console.log('Razorpay Error:', error);
         });
-
     } catch (error) {
         Alert.alert('Error', 'Could not initiate payment.');
     } finally {
@@ -170,30 +168,30 @@ export default function ContractorHome() {
   const Sidebar = () => (
       <Modal animationType="fade" transparent={true} visible={showMenu}>
           <View className="flex-1 flex-row">
-              <TouchableOpacity activeOpacity={1} onPress={() => setShowMenu(false)} className="bg-black/50 w-1/4 h-full" />
-              <View className="bg-white w-3/4 h-full p-8 pt-20" style={{ paddingTop: insets.top + 20 }}>
-                  <Text className="text-3xl font-black text-slate-900 mb-10">Menu</Text>
+              <TouchableOpacity activeOpacity={1} onPress={() => setShowMenu(false)} className="bg-black/40 w-1/4 h-full" />
+              <View className="bg-white w-3/4 h-full p-8 pt-20 shadow-2xl" style={{ paddingTop: insets.top + 40 }}>
+                  <Text className="text-3xl font-inter-black text-secondary mb-12">Menu</Text>
                   
                   <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('profile'); }} className="flex-row items-center mb-8">
-                      <View className="bg-blue-50 p-3 rounded-2xl mr-4"><User color="#1E40AF" size={24} /></View>
-                      <Text className="text-xl font-bold text-slate-700">माझी प्रोफाइल (Profile)</Text>
+                      <View className="bg-slate-50 p-4 rounded-2xl mr-4"><User color="#0F172A" size={24} /></View>
+                      <Text className="text-xl font-inter-bold text-slate-700">माझी प्रोफाइल (Profile)</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('transactions'); }} className="flex-row items-center mb-8">
-                      <View className="bg-indigo-50 p-3 rounded-2xl mr-4"><History color="#4F46E5" size={24} /></View>
-                      <Text className="text-xl font-bold text-slate-700">व्यवहार (Transactions)</Text>
+                      <View className="bg-slate-50 p-4 rounded-2xl mr-4"><History color="#0F172A" size={24} /></View>
+                      <Text className="text-xl font-inter-bold text-slate-700">व्यवहार (Transactions)</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('support'); }} className="flex-row items-center mb-10">
-                      <View className="bg-emerald-50 p-3 rounded-2xl mr-4"><MessageCircle color="#059669" size={24} /></View>
-                      <Text className="text-xl font-bold text-slate-700">मदत केंद्र (Support)</Text>
+                  <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('support'); }} className="flex-row items-center mb-12">
+                      <View className="bg-slate-50 p-4 rounded-2xl mr-4"><MessageCircle color="#0F172A" size={24} /></View>
+                      <Text className="text-xl font-inter-bold text-slate-700">मदत केंद्र (Support)</Text>
                   </TouchableOpacity>
 
-                  <View className="h-[1px] bg-slate-100 w-full mb-10" />
+                  <View className="h-[1px] bg-slate-100 w-full mb-12" />
 
                   <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} className="flex-row items-center">
-                      <View className="bg-rose-50 p-3 rounded-2xl mr-4"><LogOut color="#E11D48" size={24} /></View>
-                      <Text className="text-xl font-bold text-rose-600">Log Out</Text>
+                      <View className="bg-rose-50 p-4 rounded-2xl mr-4"><LogOut color="#E11D48" size={24} /></View>
+                      <Text className="text-xl font-inter-bold text-rose-600">Log Out</Text>
                   </TouchableOpacity>
               </View>
           </View>
@@ -201,74 +199,63 @@ export default function ContractorHome() {
   );
 
   return (
-    <View className="flex-1 bg-slate-50" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      <StatusBar barStyle="dark-content" />
       <Sidebar />
       <View className="p-6 pb-0">
-        <View className="flex-row justify-between items-center mb-6">
+        <View className="flex-row justify-between items-center mb-8">
           <View>
-            <Text className="text-slate-500 font-medium">Contractor App</Text>
-            <Text className="text-2xl font-bold text-slate-900">{user?.name || 'Welcome'}</Text>
+            <Text className="text-slate-400 font-inter-bold text-xs uppercase tracking-widest">Contractor Hub</Text>
+            <Text className="text-3xl font-inter-black text-secondary">{user?.name || 'Welcome'}</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowMenu(true)} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-            <Menu color="#1E40AF" size={24} />
+          <TouchableOpacity onPress={() => setShowMenu(true)} className="bg-slate-50 p-4 rounded-[24px] border border-slate-100">
+            <Menu color="#0F172A" size={24} />
           </TouchableOpacity>
         </View>
 
         {!user?.isSubscribed && (
             <TouchableOpacity 
                 onPress={handleSubscribe}
-                className="bg-blue-600 p-6 rounded-[32px] mb-8 flex-row items-center border border-blue-400 shadow-xl shadow-blue-200"
+                className="bg-primary p-7 rounded-[32px] mb-8 flex-row items-center shadow-2xl shadow-primary/20"
             >
                 <View className="bg-white/20 p-3 rounded-2xl mr-4">
                     <ShieldCheck color="white" size={24} />
                 </View>
                 <View className="flex-1">
-                    <Text className="text-white font-bold text-lg">Subscription Required</Text>
-                    <Text className="text-white/80">You cannot see worker phone numbers until you subscribe.</Text>
+                    <Text className="text-white font-inter-bold text-lg">Subscription Required</Text>
+                    <Text className="text-white/80 font-inter-medium text-sm">Unlock contact details of all workers.</Text>
                 </View>
                 <ChevronRight color="white" size={20} />
             </TouchableOpacity>
         )}
 
-        {!user?.isApproved && (
-            <View className="bg-amber-100 p-6 rounded-[32px] mb-8 flex-row items-center border border-amber-200">
-                <View className="bg-amber-200 p-3 rounded-2xl mr-4">
-                    <CheckCircle color="#D97706" size={24} />
-                </View>
-                <View className="flex-1">
-                    <Text className="text-amber-800 font-bold text-lg">Verification Pending</Text>
-                    <Text className="text-amber-700">Admin is currently reviewing your account.</Text>
-                </View>
-            </View>
-        )}
-
-        <View className="flex-row items-center space-x-3 mb-6">
-          <View className="flex-1 flex-row items-center bg-white p-5 rounded-[24px] border border-slate-200 shadow-sm">
-            <Search size={20} color="#94A3B8" />
+        <View className="flex-row items-center space-x-3 mb-8">
+          <View className="flex-1 flex-row items-center bg-slate-50 p-6 rounded-[28px] border border-slate-100">
+            <Search size={22} color="#94A3B8" />
             <TextInput 
-              placeholder="Search workers or city..."
+              placeholder="Search by name or city..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              className="flex-1 ml-3 text-lg"
+              className="flex-1 ml-3 font-inter-medium text-lg text-secondary"
             />
           </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 -mx-6 px-6">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8 -mx-6 px-6">
           <TouchableOpacity 
             onPress={() => setSelectedCategory(null)}
-            className={`mr-3 px-6 py-3 rounded-2xl border ${!selectedCategory ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200 shadow-sm'}`}
+            className={`mr-3 px-8 py-4 rounded-[22px] ${!selectedCategory ? 'bg-secondary' : 'bg-slate-50 border border-slate-100'}`}
           >
-            <Text className={`font-bold ${!selectedCategory ? 'text-white' : 'text-slate-600'}`}>All Workers</Text>
+            <Text className={`font-inter-bold ${!selectedCategory ? 'text-white' : 'text-slate-500'}`}>All Talent</Text>
           </TouchableOpacity>
           {CATEGORIES.map(cat => (
             <TouchableOpacity 
               key={cat.id}
               onPress={() => setSelectedCategory(cat.id)}
-              className={`mr-3 px-6 py-3 rounded-2xl border ${selectedCategory === cat.id ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200 shadow-sm'}`}
+              className={`mr-3 px-8 py-4 rounded-[22px] ${selectedCategory === cat.id ? 'bg-secondary' : 'bg-slate-50 border border-slate-100'}`}
             >
-              <Text className={`font-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-600'}`}>
-                {cat.en} ({cat.mr})
+              <Text className={`font-inter-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-500'}`}>
+                {cat.en}
               </Text>
             </TouchableOpacity>
           ))}
@@ -277,7 +264,7 @@ export default function ContractorHome() {
 
       <View className="flex-1 px-6">
         {loading && labours.length === 0 ? (
-            <ActivityIndicator size="large" color="#1E40AF" className="mt-20" />
+            <ActivityIndicator size="large" color="#2563EB" className="mt-20" />
         ) : (
             <FlatList
                 data={labours}
@@ -291,221 +278,208 @@ export default function ContractorHome() {
                       setUserRating(0);
                       try { await axios.post(`${API_URL}/workers/view/${item.id}`); } catch (e) {}
                     }}
-                    className="bg-white p-5 rounded-[32px] mb-6 shadow-sm border border-slate-100 flex-row items-center"
+                    className="bg-white p-6 rounded-[36px] mb-8 shadow-sm border border-slate-100 flex-row items-center"
                 >
-                    <Image source={{ uri: item.profileImage || `https://ui-avatars.com/api/?name=${item.name}&background=1E40AF&color=fff` }} className="w-20 h-20 rounded-2xl mr-5" />
+                    <Image source={{ uri: item.profileImage || `https://ui-avatars.com/api/?name=${item.name}&background=0F172A&color=fff` }} className="w-20 h-20 rounded-[22px] mr-5" />
                     <View className="flex-1">
                     <View className="flex-row justify-between items-center mb-1">
-                        <Text className="text-xl font-bold text-slate-900">{item.name}</Text>
-                        <View className="flex-row items-center">
-                        <Star size={14} color="#FBBF24" fill="#FBBF24" />
-                        <Text className="ml-1 text-slate-800 font-bold">{item.rating?.toFixed(1) || 4.5}</Text>
+                        <Text className="text-xl font-inter-bold text-secondary">{item.name}</Text>
+                        <View className="flex-row items-center bg-amber-50 px-2 py-1 rounded-xl">
+                            <Star size={12} color="#FBBF24" fill="#FBBF24" />
+                            <Text className="ml-1 text-amber-700 font-inter-black text-[10px]">{item.rating?.toFixed(1) || 4.5}</Text>
                         </View>
                     </View>
-                    <Text className="text-blue-700 font-bold mb-2 text-xs">
-                        {item.categoryMr} ({item.categoryEn})
+                    <Text className="text-primary font-inter-bold mb-3 text-xs uppercase tracking-tight">
+                        {item.categoryEn}
                     </Text>
-                    <View className="flex-row items-center opacity-70">
-                        <MapPin size={16} color="#64748B" />
-                        <Text className="ml-1 text-slate-600 font-medium italic">{item.city}</Text>
-                        <Text className="mx-2 text-slate-300">|</Text>
-                        <Text className="text-slate-800 font-bold text-xs">₹{item.wages}/{item.wageType.toLowerCase()}</Text>
+                    <View className="flex-row items-center">
+                        <MapPin size={14} color="#64748B" />
+                        <Text className="ml-1 text-slate-500 font-inter-medium text-xs">{item.city}</Text>
+                        <Text className="mx-2 text-slate-200">|</Text>
+                        <Text className="text-secondary font-inter-black text-xs">₹{item.wages}/{item.wageType.toLowerCase()}</Text>
                     </View>
                     </View>
-                    <ChevronRight color="#CBD5E1" size={24} />
                 </TouchableOpacity>
                 )}
                 ListEmptyComponent={
-                <View className="items-center mt-20">
+                <View className="items-center mt-24">
                     <Search size={48} color="#CBD5E1" />
-                    <Text className="text-slate-400 mt-4 text-center">No workers found. Try another category.</Text>
+                    <Text className="text-slate-400 mt-4 font-inter-medium text-center">No professionals found.</Text>
                 </View>
                 }
             />
         )}
       </View>
 
+      {/* Profile Modal */}
       {activeModal === 'profile' && (
           <Modal animationType="slide" transparent={true} visible={true}>
               <View className="flex-1 bg-black/60 justify-end">
                   <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                      <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
-                          <Text className="text-slate-400 font-bold">Close</Text>
-                      </TouchableOpacity>
-                      <Text className="text-2xl font-bold mb-6 text-center">Contractor Profile</Text>
-                      <View className="items-center mb-8">
+                      <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
+                      <Text className="text-3xl font-inter-black mb-10 text-center text-secondary">My Profile</Text>
+                      <View className="items-center mb-12">
                            <Image 
-                              source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=1E40AF&color=fff` }} 
-                              className="w-24 h-24 rounded-3xl mb-4"
+                              source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=0F172A&color=fff` }} 
+                              className="w-28 h-28 rounded-[36px] mb-6 shadow-xl border-4 border-slate-50"
                           />
-                          <Text className="text-xl font-bold text-slate-900">{user?.name}</Text>
-                          <Text className="text-slate-500 font-bold">{user?.phone}</Text>
+                          <Text className="text-2xl font-inter-bold text-secondary mb-1">{user?.name}</Text>
+                          <Text className="text-slate-400 font-inter-medium text-lg">{user?.phone}</Text>
                       </View>
-                      <View className="space-y-4">
-                          <View className="bg-slate-50 p-6 rounded-3xl">
-                              <Text className="text-slate-400 font-bold text-xs uppercase mb-1">Company Name</Text>
-                              <Text className="text-slate-900 font-bold">{user?.companyName || 'Individual'}</Text>
+                      <View className="space-y-6">
+                          <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                              <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-1">Company Entity</Text>
+                              <Text className="text-secondary font-inter-bold text-lg">{user?.companyName || 'Individual'}</Text>
                           </View>
-                          <View className="bg-slate-50 p-6 rounded-3xl">
-                              <Text className="text-slate-400 font-bold text-xs uppercase mb-1">Subscription Status</Text>
-                              <Text className={`font-bold ${user?.isSubscribed ? 'text-emerald-600' : 'text-blue-600'}`}>
-                                  {user?.isSubscribed ? 'Active Subscription' : 'Not Subscribed'}
+                          <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                              <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-1">Plan Status</Text>
+                              <Text className={`font-inter-black text-lg ${user?.isSubscribed ? 'text-emerald-600' : 'text-primary'}`}>
+                                  {user?.isSubscribed ? 'Premium Member' : 'Standard Guest'}
                               </Text>
                           </View>
                       </View>
-                  </View>
-              </View>
-          </Modal>
-      )}
-
-      {activeModal === 'transactions' && (
-          <Modal animationType="slide" transparent={true} visible={true}>
-              <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                      <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
-                          <Text className="text-slate-400 font-bold">Close</Text>
+                      <TouchableOpacity onPress={() => setActiveModal(null)} className="mt-auto bg-slate-900 w-full py-6 rounded-[32px] items-center">
+                          <Text className="text-white font-inter-bold text-xl text-center">Done</Text>
                       </TouchableOpacity>
-                      <Text className="text-2xl font-bold mb-6 text-center">Payment History</Text>
-                      <FlatList 
-                          data={transactions}
-                          keyExtractor={(item: any) => item.id}
-                          renderItem={({item}) => (
-                              <View className="bg-slate-50 p-6 rounded-[28px] mb-4 flex-row items-center border border-slate-100">
-                                  <View className="bg-emerald-100 p-3 rounded-2xl mr-4">
-                                      <CheckCircle color="#059669" size={20} />
-                                  </View>
-                                  <View className="flex-1">
-                                      <Text className="text-slate-900 font-bold text-lg">Unlimited Access Purchase</Text>
-                                      <Text className="text-slate-400 font-medium">{new Date(item.createdAt).toLocaleDateString()}</Text>
-                                  </View>
-                                  <Text className="text-slate-900 font-black text-lg">₹{item.amount}</Text>
-                              </View>
-                          )}
-                          ListEmptyComponent={<Text className="text-center text-slate-400 mt-10">No transactions found.</Text>}
-                      />
                   </View>
               </View>
           </Modal>
       )}
 
+      {/* Support Modal */}
       {activeModal === 'support' && (
           <Modal animationType="slide" transparent={true} visible={true}>
               <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[60%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                      <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
-                          <Text className="text-slate-400 font-bold">Close</Text>
-                      </TouchableOpacity>
-                      <Text className="text-2xl font-bold mb-2 text-center">Help & Support</Text>
-                      <Text className="text-slate-400 text-center mb-6 px-4">Contact admin for any issues or queries.</Text>
+                  <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>
+                      <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
+                      <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Help Center</Text>
+                      <Text className="text-slate-400 text-center mb-10 font-inter-medium text-lg leading-6 px-6">Direct line to our premium support team.</Text>
                       
                       <TextInput 
-                          placeholder="Tell us what you need help with..."
+                          placeholder="Describe your inquiry..."
                           placeholderTextColor="#94A3B8"
                           multiline
-                          numberOfLines={4}
+                          numberOfLines={6}
                           value={supportMsg}
                           onChangeText={setSupportMsg}
-                          className="bg-slate-50 p-6 rounded-[28px] text-lg text-slate-800 h-32 mb-6 border border-slate-100"
+                          className="bg-slate-50 p-8 rounded-[36px] font-inter-medium text-lg text-secondary h-40 mb-10 border border-slate-100"
                       />
 
                       <TouchableOpacity 
                           onPress={submitSupport}
                           disabled={loading}
-                          className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400"
+                          className="bg-primary w-full py-6 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-primary/20"
                       >
-                          {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-xl">Send Message</Text>}
+                          {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-inter-bold text-xl">Send Inquiry</Text>}
                       </TouchableOpacity>
                   </View>
               </View>
           </Modal>
       )}
 
+      {/* Worker Detail Modal */}
       {selectedLabour && (
         <Modal animationType="slide" transparent={true} visible={!!selectedLabour}>
           <View className="flex-1 bg-black/60 justify-end">
-            <View className="bg-white rounded-t-[48px] p-8 h-[90%] pb-12 shadow-2xl" style={{ paddingBottom: insets.bottom + 20 }}>
-              <TouchableOpacity onPress={() => setSelectedLabour(null)} className="items-center py-2 mb-6 bg-slate-100 w-16 rounded-full self-center">
-                <X color="#94A3B8" size={24} />
+            <View className="bg-white rounded-t-[56px] h-[92%] shadow-2xl overflow-hidden">
+              <TouchableOpacity onPress={() => setSelectedLabour(null)} className="absolute top-6 right-6 z-10 bg-slate-100 p-3 rounded-full">
+                <X color="#0F172A" size={24} />
               </TouchableOpacity>
 
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View className="items-center mb-8">
-                  <Image 
-                    source={{ uri: selectedLabour.profileImage || `https://ui-avatars.com/api/?name=${selectedLabour.name}&background=1E40AF&color=fff` }} 
-                    className="w-36 h-36 rounded-[48px] mb-6 shadow-2xl border-4 border-blue-50" 
-                  />
-                  <Text className="text-3xl font-bold text-slate-900">{selectedLabour.name}</Text>
-                  <Text className="text-blue-700 font-bold text-lg mb-2">{selectedLabour.categoryMr} ({selectedLabour.categoryEn})</Text>
-                  <View className="bg-slate-100 px-4 py-1 rounded-full mb-4">
-                      <Text className="text-slate-600 font-bold">Avg Rating: {selectedLabour.rating?.toFixed(1) || 4.5}</Text>
-                  </View>
+              <ScrollView 
+                showsVerticalScrollIndicator={false} 
+                contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+              >
+                <View className="p-8">
+                    <View className="items-center mt-8 mb-10">
+                        <Image 
+                            source={{ uri: selectedLabour.profileImage || `https://ui-avatars.com/api/?name=${selectedLabour.name}&background=0F172A&color=fff` }} 
+                            className="w-44 h-44 rounded-[48px] mb-8 shadow-2xl border-4 border-slate-50" 
+                        />
+                        <Text className="text-4xl font-inter-black text-secondary tracking-tight mb-2 text-center">{selectedLabour.name}</Text>
+                        <Text className="text-primary font-inter-black text-xl mb-4 text-center uppercase tracking-tighter">{selectedLabour.categoryEn}</Text>
+                        <View className="bg-amber-100 px-6 py-2 rounded-full flex-row items-center">
+                            <Star size={18} color="#FBBF24" fill="#FBBF24" />
+                            <Text className="ml-2 text-amber-900 font-inter-black text-lg">{selectedLabour.rating?.toFixed(1) || 4.5}</Text>
+                        </View>
+                    </View>
 
-                  <View className="w-full bg-slate-50 p-6 rounded-[40px] items-center border border-slate-100 mb-6">
-                    <Text className="text-lg font-bold text-slate-800 mb-4">How was your experience? (अनुभव सांगा)</Text>
-                    <View className="flex-row items-center space-x-3 mb-4">
-                        {[1,2,3,4,5].map(star => (
-                            <TouchableOpacity key={star} onPress={() => setUserRating(star)} className="p-1">
-                                <Star size={36} color="#FBBF24" fill={ (userRating || 0) >= star ? "#FBBF24" : "transparent"} />
+                    <View className="w-full bg-slate-50 p-8 rounded-[48px] items-center border border-slate-100 mb-10">
+                        <Text className="text-lg font-inter-bold text-secondary mb-6 tracking-tight">Express your feedback</Text>
+                        <View className="flex-row items-center space-x-3 mb-8">
+                            {[1,2,3,4,5].map(star => (
+                                <TouchableOpacity key={star} onPress={() => setUserRating(star)} className="p-2">
+                                    <Star size={36} color="#FBBF24" fill={ (userRating || 0) >= star ? "#FBBF24" : "transparent"} strokeWidth={1.5} />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                        {userRating > 0 && (
+                            <TouchableOpacity 
+                                onPress={() => handleRating(userRating)}
+                                className="bg-secondary px-10 py-5 rounded-[24px] shadow-xl shadow-secondary/30"
+                            >
+                                <Text className="text-white font-inter-black uppercase tracking-widest text-xs">Verify {userRating} Star Rating</Text>
                             </TouchableOpacity>
-                        ))}
+                        )}
                     </View>
-                    {userRating > 0 && (
+
+                    <View className="flex-row justify-between mb-10 space-x-4">
+                        <View className="bg-white p-6 rounded-[36px] flex-1 border border-slate-100 shadow-sm items-center">
+                            <Text className="text-slate-400 font-inter-bold mb-1 uppercase text-[10px] tracking-[2px]">Expertise</Text>
+                            <Text className="text-secondary font-inter-black text-2xl">{selectedLabour.experienceYears}y</Text>
+                        </View>
+                        <View className="bg-white p-6 rounded-[36px] flex-1 border border-slate-100 shadow-sm items-center">
+                            <Text className="text-slate-400 font-inter-bold mb-1 uppercase text-[10px] tracking-[2px]">Rate card</Text>
+                            <Text className="text-primary font-inter-black text-2xl">₹{selectedLabour.wages}</Text>
+                        </View>
+                    </View>
+
+                    {/* About Section - RESTORED */}
+                    <View className="mb-10">
+                        <Text className="text-xl font-inter-black text-secondary mb-4 tracking-tight">Professional Profile</Text>
+                        <View className="bg-slate-50 p-8 rounded-[40px] border border-slate-100">
+                            <Text className="text-slate-500 font-inter-medium text-lg leading-7">
+                                {selectedLabour.about || `${selectedLabour.name} is a high-skill professional within the ${selectedLabour.categoryEn} sector. Verified for quality and currently active in ${selectedLabour.city}.`}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Contact Action */}
+                    <View className="bg-secondary p-10 rounded-[56px] items-center shadow-2xl relative overflow-hidden">
+                      <View className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
+                      <Text className="text-white/40 mb-4 font-inter-bold uppercase text-[10px] tracking-[4px]">Secure Contact Line</Text>
+                      
+                      {user?.isSubscribed ? (
+                        <Text className="text-white text-4xl font-inter-black mb-10 tracking-[1px]">
+                          +91 {selectedLabour.phone}
+                        </Text>
+                      ) : (
+                        <View className="items-center mb-10">
+                            <Text className="text-white text-4xl font-inter-black blur-lg opacity-20">
+                            +91 XXXXX XXXXX
+                            </Text>
+                            <Text className="text-primary font-inter-black text-xs mt-2 uppercase">Subscription Locked</Text>
+                        </View>
+                      )}
+                      
+                      {!user?.isSubscribed ? (
                         <TouchableOpacity 
-                            onPress={() => handleRating(userRating)}
-                            className="bg-amber-500 px-8 py-3 rounded-full shadow-lg shadow-amber-200"
+                            onPress={handleSubscribe}
+                            className="bg-primary w-full py-7 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-primary/30"
                         >
-                            <Text className="text-white font-bold">Give {userRating} Star Rating</Text>
+                          <ShieldCheck color="white" size={24} strokeWidth={2.5} />
+                          <Text className="text-white font-inter-black text-xl ml-3 uppercase tracking-tighter">Premium Access</Text>
                         </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-
-                <View className="flex-row justify-between mb-8">
-                    <View className="bg-slate-50 p-5 rounded-[28px] flex-1 mr-3 items-center border border-slate-100">
-                        <Text className="text-slate-400 font-bold mb-1 uppercase text-[10px] tracking-widest">Experience</Text>
-                        <Text className="text-slate-900 font-bold text-lg">{selectedLabour.experienceYears} Years</Text>
+                      ) : (
+                        <TouchableOpacity 
+                            onPress={() => Linking.openURL(`tel:+91${selectedLabour.phone}`)}
+                            className="bg-emerald-600 w-full py-7 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-emerald-700/40"
+                        >
+                          <Phone color="white" size={24} fill="white" />
+                          <Text className="text-white font-inter-black text-xl ml-3 uppercase tracking-tighter">Direct Call</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <View className="bg-slate-50 p-5 rounded-[28px] flex-1 ml-3 items-center border border-slate-100">
-                        <Text className="text-slate-400 font-bold mb-1 uppercase text-[10px] tracking-widest">Wages</Text>
-                        <Text className="text-blue-700 font-bold text-lg">₹{selectedLabour.wages}/{selectedLabour.wageType.toLowerCase()}</Text>
-                    </View>
-                </View>
-
-                <View className="bg-slate-900 p-8 rounded-[40px] items-center shadow-2xl mb-10">
-                  <Text className="text-white/50 mb-3 font-bold uppercase text-xs tracking-widest text-center">Contact Verified Worker</Text>
-                  
-                  {user?.isSubscribed ? (
-                    <Text className="text-white text-4xl font-bold mb-6 tracking-tighter">
-                      +91 {selectedLabour.phone}
-                    </Text>
-                  ) : (
-                    <View className="items-center">
-                        <Text className="text-white text-4xl font-bold mb-2 blur-md opacity-20">
-                        +91 XXXXX XXXXX
-                        </Text>
-                        <Text className="text-blue-400 text-xs font-bold mb-6 text-center px-4">
-                            Subscribe to unlock details
-                        </Text>
-                    </View>
-                  )}
-                  
-                  {!user?.isSubscribed ? (
-                    <TouchableOpacity 
-                        onPress={handleSubscribe}
-                        className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400"
-                    >
-                      <CreditCard color="white" size={24} />
-                      <Text className="text-white font-bold text-xl ml-3">Subscribe to View</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity 
-                        onPress={() => Linking.openURL(`tel:+91${selectedLabour.phone}`)}
-                        className="bg-emerald-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-green-400"
-                    >
-                      <Phone color="white" size={24} />
-                      <Text className="text-white font-bold text-xl ml-3">Call Now</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
               </ScrollView>
             </View>

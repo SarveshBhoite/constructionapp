@@ -6,12 +6,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#F97316", // Construction Orange
-        secondary: "#1E293B", // Dark Blue/Slate
-        accent: "#FBBF24", // Safety Yellow
+        primary: "#2563EB", // Royal Blue
+        secondary: "#0F172A", // Deep Slate
+        accent: "#FBBF24", // Premium Amber
+        surface: "#F8FAFC", // Soft Slate Background
       },
       fontFamily: {
-        inter: ["Inter"],
+        inter: ["Inter_400Regular"],
+        "inter-medium": ["Inter_500Medium"],
+        "inter-semibold": ["Inter_600SemiBold"],
+        "inter-bold": ["Inter_700Bold"],
+        "inter-black": ["Inter_900Black"],
       },
     },
   },
