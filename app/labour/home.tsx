@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image, ActivityIndicator, RefreshControl, Modal, FlatList, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator, RefreshControl, Modal, FlatList, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageCircle, Star, AlertCircle, Eye } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
@@ -10,6 +11,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function LabourHome() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
@@ -62,7 +64,6 @@ export default function LabourHome() {
           onPress: async () => {
             try {
               setLoading(true);
-              // Create Order
               const orderRes = await axios.post(`${API_URL}/payments/create-order`, {
                   amount: 200,
                   workerId: user?.id
@@ -70,7 +71,6 @@ export default function LabourHome() {
               const order = orderRes.data;
 
               if (typeof RazorpayCheckout === 'undefined' || !RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
-                  // Fallback to Link
                   const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
                     amount: 200,
                     workerId: user?.id
@@ -141,15 +141,15 @@ export default function LabourHome() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50" style={{ paddingTop: insets.top }}>
       <ScrollView 
         className="p-6" 
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 50 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E40AF"]} />
         }
       >
-        {/* Header */}
         <View className="flex-row justify-between items-center mb-8">
           <View>
             <Text className="text-slate-500 font-medium">Worker Dashboard</Text>
@@ -166,7 +166,6 @@ export default function LabourHome() {
           </TouchableOpacity>
         </View>
 
-        {/* Subscription Alert Banner */}
         {!dbUser?.isSubscribed && (
             <TouchableOpacity 
                 onPress={handleSubscription}
@@ -183,7 +182,6 @@ export default function LabourHome() {
             </TouchableOpacity>
         )}
 
-        {/* Status Card */}
         <View className="bg-slate-900 p-8 rounded-[40px] shadow-2xl mb-8 overflow-hidden relative">
           <View className="absolute -right-10 -top-10 w-40 h-40 bg-blue-600/10 rounded-full" />
           
@@ -196,7 +194,7 @@ export default function LabourHome() {
                 <Text className="text-white font-bold text-xl">{dbUser?.name}</Text>
                 <View className="flex-row items-center mt-1">
                     <Star size={14} color="#FBBF24" fill="#FBBF24" />
-                    <Text className="text-white/70 ml-2 font-bold">{dbUser?.rating || 0} Rating</Text>
+                    <Text className="text-white/70 ml-2 font-bold">{dbUser?.rating?.toFixed(1) || 0} Rating</Text>
                 </View>
             </View>
           </View>
@@ -217,58 +215,37 @@ export default function LabourHome() {
           </View>
         </View>
 
-        {/* Menu Actions */}
         <Text className="text-xl font-bold text-slate-800 mb-4 ml-2">Quick Actions</Text>
         <View className="space-y-4 pb-12">
-          <TouchableOpacity 
-            onPress={() => setActiveModal('profile')}
-            className="flex-row items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-4"
-          >
-            <View className="bg-blue-50 p-4 rounded-2xl mr-5">
-              <User color="#1E40AF" size={24} />
-            </View>
+          <TouchableOpacity onPress={() => setActiveModal('profile')} className="flex-row items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-4">
+            <View className="bg-blue-50 p-4 rounded-2xl mr-5"><User color="#1E40AF" size={24} /></View>
             <Text className="flex-1 text-lg font-bold text-slate-700">माझी प्रोफाइल (My Profile)</Text>
             <ChevronRight color="#CBD5E1" size={20} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => setActiveModal('transactions')}
-            className="flex-row items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-4"
-          >
-            <View className="bg-indigo-50 p-4 rounded-2xl mr-5">
-              <History color="#4F46E5" size={24} />
-            </View>
+          <TouchableOpacity onPress={() => setActiveModal('transactions')} className="flex-row items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-4">
+            <View className="bg-indigo-50 p-4 rounded-2xl mr-5"><History color="#4F46E5" size={24} /></View>
             <Text className="flex-1 text-lg font-bold text-slate-700">व्यवहार (Transactions)</Text>
             <ChevronRight color="#CBD5E1" size={20} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => setActiveModal('support')}
-            className="flex-row items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-8"
-          >
-            <View className="bg-emerald-50 p-4 rounded-2xl mr-5">
-              <MessageCircle color="#059669" size={24} />
-            </View>
+          <TouchableOpacity onPress={() => setActiveModal('support')} className="flex-row items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-8">
+            <View className="bg-emerald-50 p-4 rounded-2xl mr-5"><MessageCircle color="#059669" size={24} /></View>
             <Text className="flex-1 text-lg font-bold text-slate-700">मदत केंद्र (Support)</Text>
             <ChevronRight color="#CBD5E1" size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* MODALS */}
-        {/* Profile Modal */}
         {activeModal === 'profile' && (
             <Modal animationType="slide" transparent={true} visible={true}>
                 <View className="flex-1 bg-black/60 justify-end">
-                    <View className="bg-white rounded-t-[48px] p-8 h-[70%]">
+                    <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
                         <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
                             <Text className="text-slate-400 font-bold">Close</Text>
                         </TouchableOpacity>
                         <Text className="text-2xl font-bold mb-6 text-center">My Profile</Text>
                         <View className="items-center mb-8">
-                             <Image 
-                                source={{ uri: dbUser?.profileImage || `https://ui-avatars.com/api/?name=${dbUser?.name}&background=1E40AF&color=fff` }} 
-                                className="w-24 h-24 rounded-3xl mb-4"
-                            />
+                             <Image source={{ uri: dbUser?.profileImage || `https://ui-avatars.com/api/?name=${dbUser?.name}&background=1E40AF&color=fff` }} className="w-24 h-24 rounded-3xl mb-4" />
                             <Text className="text-xl font-bold text-slate-900">{dbUser?.name}</Text>
                             <Text className="text-slate-500 font-bold">{dbUser?.phone}</Text>
                         </View>
@@ -287,11 +264,10 @@ export default function LabourHome() {
             </Modal>
         )}
 
-        {/* Transactions Modal */}
         {activeModal === 'transactions' && (
             <Modal animationType="slide" transparent={true} visible={true}>
                 <View className="flex-1 bg-black/60 justify-end">
-                    <View className="bg-white rounded-t-[48px] p-8 h-[70%]">
+                    <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
                         <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
                             <Text className="text-slate-400 font-bold">Close</Text>
                         </TouchableOpacity>
@@ -301,9 +277,7 @@ export default function LabourHome() {
                             keyExtractor={(item: any) => item.id}
                             renderItem={({item}) => (
                                 <View className="bg-slate-50 p-6 rounded-[28px] mb-4 flex-row items-center border border-slate-100">
-                                    <View className="bg-emerald-100 p-3 rounded-2xl mr-4">
-                                        <CheckCircle2 color="#059669" size={20} />
-                                    </View>
+                                    <View className="bg-emerald-100 p-3 rounded-2xl mr-4"><CheckCircle2 color="#059669" size={20} /></View>
                                     <View className="flex-1">
                                         <Text className="text-slate-900 font-bold text-lg">Featured Profile Purchase</Text>
                                         <Text className="text-slate-400 font-medium">{new Date(item.createdAt).toLocaleDateString()}</Text>
@@ -318,32 +292,17 @@ export default function LabourHome() {
             </Modal>
         )}
 
-        {/* Support Modal */}
         {activeModal === 'support' && (
             <Modal animationType="slide" transparent={true} visible={true}>
                 <View className="flex-1 bg-black/60 justify-end">
-                    <View className="bg-white rounded-t-[48px] p-8 h-[60%]">
+                    <View className="bg-white rounded-t-[48px] p-8 h-[60%]" style={{ paddingBottom: insets.bottom + 20 }}>
                         <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
                             <Text className="text-slate-400 font-bold">Close</Text>
                         </TouchableOpacity>
                         <Text className="text-2xl font-bold mb-2 text-center">Help & Support</Text>
                         <Text className="text-slate-400 text-center mb-6 px-4">Our team will get back to you within 24 hours.</Text>
-                        
-                        <TextInput 
-                            placeholder="Message to Admin..."
-                            placeholderTextColor="#94A3B8"
-                            multiline
-                            numberOfLines={4}
-                            value={supportMsg}
-                            onChangeText={setSupportMsg}
-                            className="bg-slate-50 p-6 rounded-[28px] text-lg text-slate-800 h-32 mb-6 border border-slate-100"
-                        />
-
-                        <TouchableOpacity 
-                            onPress={submitSupport}
-                            disabled={loading}
-                            className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400"
-                        >
+                        <TextInput placeholder="Message to Admin..." placeholderTextColor="#94A3B8" multiline numberOfLines={4} value={supportMsg} onChangeText={setSupportMsg} className="bg-slate-50 p-6 rounded-[28px] text-lg text-slate-800 h-32 mb-6 border border-slate-100" />
+                        <TouchableOpacity onPress={submitSupport} disabled={loading} className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400">
                             {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-xl">Send Message</Text>}
                         </TouchableOpacity>
                     </View>
@@ -351,6 +310,6 @@ export default function LabourHome() {
             </Modal>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

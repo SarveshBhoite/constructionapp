@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle } from 'lucide-react-native';
+import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle, Menu } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { CATEGORIES } from '../../src/constants/categories';
 import { useAuthStore } from '../../src/store/authStore';
@@ -13,6 +13,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_S1OGtZgvN2t1r6';
 
 export default function ContractorHome() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
   const { user, setAuth } = useAuthStore();
@@ -77,7 +78,7 @@ export default function ContractorHome() {
               rating: ratingValue
           });
           setUserRating(ratingValue);
-          Alert.alert('Thank You', 'Your rating has been submitted!');
+          Alert.alert('Success', 'Rating submitted!');
           fetchWorkers(); // Refresh list to show new rating
       } catch (e) {
           Alert.alert('Error', 'Could not submit rating.');
@@ -87,7 +88,6 @@ export default function ContractorHome() {
   const handleSubscribe = async () => {
     try {
         setLoading(true);
-        // 1. Create Order on Backend
         const orderResponse = await axios.post(`${API_URL}/payments/create-order`, {
             amount: 500,
             contractorId: user?.id || 'default-contractor'
@@ -95,7 +95,6 @@ export default function ContractorHome() {
 
         const order = orderResponse.data;
 
-        // 2. Open Razorpay Checkout (or Use Payment Link for Expo Go)
         if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
             try {
                 const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
@@ -168,12 +167,11 @@ export default function ContractorHome() {
       }
   };
   
-  // Sidebar Component
   const Sidebar = () => (
       <Modal animationType="fade" transparent={true} visible={showMenu}>
           <View className="flex-1 flex-row">
               <TouchableOpacity activeOpacity={1} onPress={() => setShowMenu(false)} className="bg-black/50 w-1/4 h-full" />
-              <View className="bg-white w-3/4 h-full p-8 pt-20">
+              <View className="bg-white w-3/4 h-full p-8 pt-20" style={{ paddingTop: insets.top + 20 }}>
                   <Text className="text-3xl font-black text-slate-900 mb-10">Menu</Text>
                   
                   <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('profile'); }} className="flex-row items-center mb-8">
@@ -203,20 +201,19 @@ export default function ContractorHome() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50" style={{ paddingTop: insets.top }}>
       <Sidebar />
       <View className="p-6 pb-0">
         <View className="flex-row justify-between items-center mb-6">
           <View>
-            <Text className="text-slate-500 font-medium">Contractor Panel</Text>
+            <Text className="text-slate-500 font-medium">Contractor App</Text>
             <Text className="text-2xl font-bold text-slate-900">{user?.name || 'Welcome'}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowMenu(true)} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-            <Search color="#1E40AF" size={20} />
+            <Menu color="#1E40AF" size={24} />
           </TouchableOpacity>
         </View>
 
-        {/* Subscription Alert Banner */}
         {!user?.isSubscribed && (
             <TouchableOpacity 
                 onPress={handleSubscribe}
@@ -233,7 +230,6 @@ export default function ContractorHome() {
             </TouchableOpacity>
         )}
 
-        {/* Approval Alert if not approved */}
         {!user?.isApproved && (
             <View className="bg-amber-100 p-6 rounded-[32px] mb-8 flex-row items-center border border-amber-200">
                 <View className="bg-amber-200 p-3 rounded-2xl mr-4">
@@ -246,7 +242,6 @@ export default function ContractorHome() {
             </View>
         )}
 
-        {/* Search */}
         <View className="flex-row items-center space-x-3 mb-6">
           <View className="flex-1 flex-row items-center bg-white p-5 rounded-[24px] border border-slate-200 shadow-sm">
             <Search size={20} color="#94A3B8" />
@@ -259,7 +254,6 @@ export default function ContractorHome() {
           </View>
         </View>
 
-        {/* Categories Carousel */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 -mx-6 px-6">
           <TouchableOpacity 
             onPress={() => setSelectedCategory(null)}
@@ -281,23 +275,6 @@ export default function ContractorHome() {
         </ScrollView>
       </View>
 
-      {/* Subscription Banner */}
-      {!user?.isSubscribed && (
-        <View className="mx-6 mb-6 bg-slate-900 p-6 rounded-[32px] flex-row items-center justify-between shadow-xl">
-          <View className="flex-1 mr-4">
-            <Text className="text-white font-bold text-lg mb-1">Unlock All Contacts</Text>
-            <Text className="text-slate-400 text-sm">₹500 for 1 month unlimited access</Text>
-          </View>
-          <TouchableOpacity 
-            onPress={handleSubscribe}
-            className="bg-blue-600 px-6 py-4 rounded-2xl"
-          >
-            <Text className="text-white font-bold">Subscribe</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Labour List */}
       <View className="flex-1 px-6">
         {loading && labours.length === 0 ? (
             <ActivityIndicator size="large" color="#1E40AF" className="mt-20" />
@@ -306,13 +283,12 @@ export default function ContractorHome() {
                 data={labours}
                 keyExtractor={item => item.id}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 120 }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
                 renderItem={({ item }) => (
                 <TouchableOpacity 
                     onPress={async () => {
                       setSelectedLabour(item);
-                      setUserRating(0); // Reset for modal
-                      // Increment View Count
+                      setUserRating(0);
                       try { await axios.post(`${API_URL}/workers/view/${item.id}`); } catch (e) {}
                     }}
                     className="bg-white p-5 rounded-[32px] mb-6 shadow-sm border border-slate-100 flex-row items-center"
@@ -323,7 +299,7 @@ export default function ContractorHome() {
                         <Text className="text-xl font-bold text-slate-900">{item.name}</Text>
                         <View className="flex-row items-center">
                         <Star size={14} color="#FBBF24" fill="#FBBF24" />
-                        <Text className="ml-1 text-slate-800 font-bold">{item.rating || 4.5}</Text>
+                        <Text className="ml-1 text-slate-800 font-bold">{item.rating?.toFixed(1) || 4.5}</Text>
                         </View>
                     </View>
                     <Text className="text-blue-700 font-bold mb-2 text-xs">
@@ -349,12 +325,10 @@ export default function ContractorHome() {
         )}
       </View>
 
-      {/* MODALS */}
-      {/* Profile Modal */}
       {activeModal === 'profile' && (
           <Modal animationType="slide" transparent={true} visible={true}>
               <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
                       <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
                           <Text className="text-slate-400 font-bold">Close</Text>
                       </TouchableOpacity>
@@ -384,11 +358,10 @@ export default function ContractorHome() {
           </Modal>
       )}
 
-      {/* Transactions Modal */}
       {activeModal === 'transactions' && (
           <Modal animationType="slide" transparent={true} visible={true}>
               <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
                       <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
                           <Text className="text-slate-400 font-bold">Close</Text>
                       </TouchableOpacity>
@@ -415,11 +388,10 @@ export default function ContractorHome() {
           </Modal>
       )}
 
-      {/* Support Modal */}
       {activeModal === 'support' && (
           <Modal animationType="slide" transparent={true} visible={true}>
               <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[60%]">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[60%]" style={{ paddingBottom: insets.bottom + 20 }}>
                       <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
                           <Text className="text-slate-400 font-bold">Close</Text>
                       </TouchableOpacity>
@@ -448,11 +420,10 @@ export default function ContractorHome() {
           </Modal>
       )}
 
-      {/* Labour Detail Modal */}
       {selectedLabour && (
         <Modal animationType="slide" transparent={true} visible={!!selectedLabour}>
           <View className="flex-1 bg-black/60 justify-end">
-            <View className="bg-white rounded-t-[48px] p-8 h-[85%] pb-12 shadow-2xl">
+            <View className="bg-white rounded-t-[48px] p-8 h-[90%] pb-12 shadow-2xl" style={{ paddingBottom: insets.bottom + 20 }}>
               <TouchableOpacity onPress={() => setSelectedLabour(null)} className="items-center py-2 mb-6 bg-slate-100 w-16 rounded-full self-center">
                 <X color="#94A3B8" size={24} />
               </TouchableOpacity>
@@ -465,15 +436,27 @@ export default function ContractorHome() {
                   />
                   <Text className="text-3xl font-bold text-slate-900">{selectedLabour.name}</Text>
                   <Text className="text-blue-700 font-bold text-lg mb-2">{selectedLabour.categoryMr} ({selectedLabour.categoryEn})</Text>
-                  
-                  {/* INTERACTIVE STARS */}
-                  <View className="flex-row items-center space-x-2 mt-2 bg-slate-100 px-6 py-4 rounded-full">
-                    {[1,2,3,4,5].map(star => (
-                        <TouchableOpacity key={star} onPress={() => handleRating(star)}>
-                           <Star size={24} color="#FBBF24" fill={ (userRating || selectedLabour.rating || 4.5) >= star ? "#FBBF24" : "transparent"} />
+                  <View className="bg-slate-100 px-4 py-1 rounded-full mb-4">
+                      <Text className="text-slate-600 font-bold">Avg Rating: {selectedLabour.rating?.toFixed(1) || 4.5}</Text>
+                  </View>
+
+                  <View className="w-full bg-slate-50 p-6 rounded-[40px] items-center border border-slate-100 mb-6">
+                    <Text className="text-lg font-bold text-slate-800 mb-4">How was your experience? (अनुभव सांगा)</Text>
+                    <View className="flex-row items-center space-x-3 mb-4">
+                        {[1,2,3,4,5].map(star => (
+                            <TouchableOpacity key={star} onPress={() => setUserRating(star)} className="p-1">
+                                <Star size={36} color="#FBBF24" fill={ (userRating || 0) >= star ? "#FBBF24" : "transparent"} />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    {userRating > 0 && (
+                        <TouchableOpacity 
+                            onPress={() => handleRating(userRating)}
+                            className="bg-amber-500 px-8 py-3 rounded-full shadow-lg shadow-amber-200"
+                        >
+                            <Text className="text-white font-bold">Give {userRating} Star Rating</Text>
                         </TouchableOpacity>
-                    ))}
-                    <Text className="ml-2 text-slate-900 font-bold text-xl">{selectedLabour.rating || 4.5}</Text>
+                    )}
                   </View>
                 </View>
 
@@ -488,11 +471,10 @@ export default function ContractorHome() {
                     </View>
                 </View>
 
-                {/* Contact Area */}
                 <View className="bg-slate-900 p-8 rounded-[40px] items-center shadow-2xl mb-10">
                   <Text className="text-white/50 mb-3 font-bold uppercase text-xs tracking-widest text-center">Contact Verified Worker</Text>
                   
-                  {user?.isSubscribed && selectedLabour.isSubscribed ? (
+                  {user?.isSubscribed ? (
                     <Text className="text-white text-4xl font-bold mb-6 tracking-tighter">
                       +91 {selectedLabour.phone}
                     </Text>
@@ -502,26 +484,18 @@ export default function ContractorHome() {
                         +91 XXXXX XXXXX
                         </Text>
                         <Text className="text-blue-400 text-xs font-bold mb-6 text-center px-4">
-                            {!user?.isSubscribed ? "Subscribe to unlock details" : "Worker subscription expired"}
+                            Subscribe to unlock details
                         </Text>
                     </View>
                   )}
                   
-                  {!(user?.isSubscribed && selectedLabour.isSubscribed) ? (
+                  {!user?.isSubscribed ? (
                     <TouchableOpacity 
-                        onPress={() => {
-                            if (!user?.isSubscribed) {
-                                handleSubscribe();
-                            } else {
-                                Alert.alert("Not Contactable", "This worker's subscription has expired and their contact details are currently hidden.");
-                            }
-                        }}
+                        onPress={handleSubscribe}
                         className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400"
                     >
                       <CreditCard color="white" size={24} />
-                      <Text className="text-white font-bold text-xl ml-3">
-                          {!user?.isSubscribed ? "Subscribe to View" : "Hidden"}
-                      </Text>
+                      <Text className="text-white font-bold text-xl ml-3">Subscribe to View</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity 
@@ -533,20 +507,11 @@ export default function ContractorHome() {
                     </TouchableOpacity>
                   )}
                 </View>
-
-                <View className="mb-20">
-                    <Text className="text-xl font-bold text-slate-800 mb-4">About Worker</Text>
-                    <View className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                        <Text className="text-slate-600 text-lg leading-7">
-                            {selectedLabour.about || `${selectedLabour.name} is a highly skilled ${selectedLabour.categoryEn} based in ${selectedLabour.city}, ${selectedLabour.state}. With ${selectedLabour.experienceYears} years of experience, they specialize in professional construction and maintenance services.`}
-                        </Text>
-                    </View>
-                </View>
               </ScrollView>
             </View>
           </View>
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

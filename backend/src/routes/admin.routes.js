@@ -45,4 +45,48 @@ router.delete("/reject-contractor/:id", async (req, res) => {
   }
 });
 
+// Get Admin Stats
+router.get("/stats", async (req, res) => {
+  try {
+    const workerCount = await prisma.worker.count();
+    const contractorCount = await prisma.contractor.count();
+    const pendingContractors = await prisma.contractor.count({ where: { isApproved: false } });
+    const openTickets = await prisma.supportTicket.count({ where: { status: "OPEN" } });
+
+    res.json({
+      workerCount,
+      contractorCount,
+      pendingContractors,
+      openTickets
+    });
+  } catch (error) {
+    console.error("Fetch Stats Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get All Workers
+router.get("/workers", async (req, res) => {
+  try {
+    const workers = await prisma.worker.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(workers);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get All Contractors
+router.get("/contractors", async (req, res) => {
+  try {
+    const contractors = await prisma.contractor.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(contractors);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
