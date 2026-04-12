@@ -16,13 +16,8 @@ interface Contractor {
   isApproved: boolean;
 }
 
-export default function AdminDashboard() {
-  const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
-  const [contractors, setContractors] = useState<Contractor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'contractors' | 'support'>('contractors');
+  const [tickets, setTickets] = useState<any[]>([]);
 
   const fetchPendingContractors = async () => {
     try {
@@ -30,47 +25,36 @@ export default function AdminDashboard() {
       setContractors(response.data);
     } catch (error) {
       console.error('Fetch Error:', error);
-      Alert.alert('Error', 'Failed to fetch pending contractors.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  const fetchSupportTickets = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/support/tickets`);
+        setTickets(response.data);
+    } catch (e) {}
+  };
+
   useEffect(() => {
-    fetchPendingContractors();
-  }, []);
+    if (activeTab === 'contractors') fetchPendingContractors();
+    else fetchSupportTickets();
+  }, [activeTab]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchPendingContractors();
+    if (activeTab === 'contractors') fetchPendingContractors();
+    else fetchSupportTickets();
   };
 
-  const handleAction = async (id: string, action: 'approve' | 'reject') => {
-    Alert.alert(
-      `${action.charAt(0).toUpperCase() + action.slice(1)} Contractor?`,
-      `Are you sure you want to ${action} this contractor's application?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Confirm', 
-          onPress: async () => {
-              try {
-                if (action === 'approve') {
-                    await axios.post(`${API_URL}/admin/approve-contractor/${id}`);
-                } else {
-                    await axios.delete(`${API_URL}/admin/reject-contractor/${id}`);
-                }
-                
-                setContractors(prev => prev.filter(c => c.id !== id));
-                Alert.alert('Success', `Contractor has been ${action}d.`);
-              } catch (error) {
-                Alert.alert('Error', `Failed to ${action} contractor.`);
-              }
-          } 
-        }
-      ]
-    );
+  const updateTicketStatus = async (id: string, status: string) => {
+      try {
+          await axios.patch(`${API_URL}/support/ticket/${id}`, { status });
+          fetchSupportTickets();
+          Alert.alert('Updated', 'Ticket status updated to ' + status);
+      } catch (e) {}
   };
 
   return (
@@ -79,7 +63,7 @@ export default function AdminDashboard() {
         <View className="flex-row justify-between items-center mb-8">
           <View>
             <Text className="text-slate-500 font-bold uppercase tracking-widest text-xs">System Admin</Text>
-            <Text className="text-3xl font-bold text-slate-800">Verification</Text>
+            <Text className="text-3xl font-bold text-slate-800">Control Panel</Text>
           </View>
           <TouchableOpacity 
             onPress={() => { logout(); router.replace('/'); }}
@@ -89,109 +73,105 @@ export default function AdminDashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Stats Summary */}
-        <View className="flex-row justify-between mb-8">
-            <View className="bg-blue-600 p-6 rounded-[32px] flex-1 mr-3 shadow-xl shadow-blue-200">
-                <Users color="white" size={24} />
-                <Text className="text-white/60 mt-3 font-medium">Pending Review</Text>
-                <Text className="text-white text-3xl font-black">{contractors.length}</Text>
-            </View>
-            <View className="bg-slate-800 p-6 rounded-[32px] flex-1 ml-3 shadow-xl shadow-slate-300">
-                <Activity color="#10B981" size={24} />
-                <Text className="text-white/60 mt-3 font-medium">Status</Text>
-                <Text className="text-white text-3xl font-black">Active</Text>
-            </View>
+        {/* Tab Switcher */}
+        <View className="flex-row bg-slate-200/50 p-2 rounded-[28px] mb-8">
+            <TouchableOpacity 
+                onPress={() => setActiveTab('contractors')}
+                className={`flex-1 py-4 rounded-3xl items-center ${activeTab === 'contractors' ? 'bg-white shadow-sm' : ''}`}
+            >
+                <Text className={`font-bold ${activeTab === 'contractors' ? 'text-slate-900' : 'text-slate-500'}`}>Contractors</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+                onPress={() => setActiveTab('support')}
+                className={`flex-1 py-4 rounded-3xl items-center ${activeTab === 'support' ? 'bg-white shadow-sm' : ''}`}
+            >
+                <Text className={`font-bold ${activeTab === 'support' ? 'text-slate-900' : 'text-slate-500'}`}>Support</Text>
+            </TouchableOpacity>
         </View>
 
-        <Text className="text-xl font-bold text-slate-800 mb-6">Approval Queue</Text>
+        {activeTab === 'contractors' && <Text className="text-xl font-bold text-slate-800 mb-6">Approval Queue</Text>}
+        {activeTab === 'support' && <Text className="text-xl font-bold text-slate-800 mb-6">Support Tickets</Text>}
       </View>
 
-      {loading ? (
-          <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color="#1E40AF" />
-              <Text className="text-slate-400 mt-4">Loading queue...</Text>
-          </View>
+      {activeTab === 'contractors' ? (
+          loading ? (
+              <View className="flex-1 items-center justify-center">
+                  <ActivityIndicator size="large" color="#1E40AF" />
+                  <Text className="text-slate-400 mt-4">Loading queue...</Text>
+              </View>
+          ) : (
+              <FlatList
+                data={contractors}
+                keyExtractor={item => item.id}
+                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E40AF"]} />}
+                renderItem={({ item }) => (
+                  <View className="bg-white p-6 rounded-[40px] mb-6 shadow-sm border border-slate-100">
+                    <View className="flex-row justify-between items-start mb-6">
+                        <View className="flex-row items-center flex-1">
+                            <View className="bg-blue-50 p-4 rounded-3xl mr-4">
+                                <Building color="#1E40AF" size={28} />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-2xl font-bold text-slate-800" numberOfLines={1}>{item.companyName || item.name}</Text>
+                                <Text className="text-slate-500 font-medium">Owner: {item.name}</Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View className="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
+                        <TouchableOpacity onPress={() => setSelectedDoc(item.idProof || null)}>
+                            <Image source={{ uri: item.idProof }} className="w-full h-40 rounded-2xl mb-4" />
+                        </TouchableOpacity>
+                        <Text className="text-slate-400">Phone: {item.phone}</Text>
+                    </View>
+                    <View className="flex-row space-x-4">
+                        <TouchableOpacity onPress={() => handleAction(item.id, 'reject')} className="flex-1 bg-slate-100 p-5 rounded-2xl items-center"><Text className="text-red-500 font-bold">Reject</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleAction(item.id, 'approve')} className="flex-1 bg-blue-600 p-5 rounded-2xl items-center"><Text className="text-white font-bold">Approve</Text></TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                ListEmptyComponent={<Text className="text-center text-slate-400 mt-20">No pending contractors.</Text>}
+              />
+          )
       ) : (
-          <FlatList
-            data={contractors}
+          <FlatList 
+            data={tickets}
             keyExtractor={item => item.id}
             contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-            refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E40AF"]} />
-            }
-            renderItem={({ item }) => (
-              <View className="bg-white p-6 rounded-[40px] mb-6 shadow-sm border border-slate-100">
-                <View className="flex-row justify-between items-start mb-6">
-                    <View className="flex-row items-center flex-1">
-                        <View className="bg-blue-50 p-4 rounded-3xl mr-4">
-                            <Building color="#1E40AF" size={28} />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-2xl font-bold text-slate-800" numberOfLines={1}>{item.companyName || item.name}</Text>
-                            <Text className="text-slate-500 font-medium">Owner: {item.name}</Text>
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E40AF"]} />}
+            renderItem={({item}) => (
+                <View className="bg-white p-6 rounded-[32px] mb-6 border border-slate-100 shadow-sm">
+                    <View className="flex-row justify-between mb-4">
+                        <Text className="text-slate-400 font-black uppercase text-[10px] tracking-widest">{item.role}</Text>
+                        <View className={`px-3 py-1 rounded-full ${item.status === 'OPEN' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                            <Text className={`font-bold text-[10px] ${item.status === 'OPEN' ? 'text-amber-600' : 'text-emerald-600'}`}>{item.status}</Text>
                         </View>
                     </View>
-                </View>
-
-                <View className="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
-                    <View className="flex-row items-center mb-3">
-                        <FileText color="#64748B" size={18} />
-                        <Text className="text-slate-800 font-bold ml-2 text-lg">Identity Verification</Text>
-                    </View>
-                    
-                    {item.idProof ? (
+                    <Text className="text-xl font-bold text-slate-900 mb-2">{item.userName}</Text>
+                    <Text className="text-slate-600 mb-6 text-lg">{item.message}</Text>
+                    <View className="flex-row space-x-3">
                         <TouchableOpacity 
-                            onPress={() => setSelectedDoc(item.idProof || null)}
-                            className="w-full h-40 rounded-2xl overflow-hidden mb-4 border border-slate-200"
+                            onPress={() => updateTicketStatus(item.id, 'RESOLVED')}
+                            disabled={item.status === 'RESOLVED'}
+                            className="bg-emerald-600 px-6 py-3 rounded-2xl flex-row items-center"
                         >
-                            <Image source={{ uri: item.idProof }} className="w-full h-full" resizeMode="cover" />
-                            <View className="absolute bottom-3 right-3 bg-black/40 px-3 py-1 rounded-full">
-                                <Text className="text-white text-[10px] font-bold uppercase">View Full</Text>
-                            </View>
+                            <CheckCircle2 color="white" size={16} />
+                            <Text className="text-white font-bold ml-2">Resolve</Text>
                         </TouchableOpacity>
-                    ) : (
-                        <View className="bg-slate-100 h-40 rounded-2xl items-center justify-center mb-4 border border-dashed border-slate-300">
-                            <Text className="text-slate-400">No document uploaded</Text>
-                        </View>
-                    )}
-
-                    <Text className="text-slate-400 mb-4">Contractor phone: {item.phone}</Text>
-                    <View className="flex-row items-center">
-                        <AlertTriangle color="#F59E0B" size={16} />
-                        <Text className="text-amber-600 text-xs font-bold ml-1 uppercase">Pending Approval</Text>
+                        <TouchableOpacity 
+                             onPress={() => Linking.openURL(`tel:${item.userId}`)} // Assuming userId can be phone or fetched
+                             className="bg-slate-100 px-6 py-3 rounded-2xl"
+                        >
+                            <Text className="text-slate-600 font-bold">Contact User</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
-
-                <View className="flex-row space-x-4">
-                    <TouchableOpacity 
-                        onPress={() => handleAction(item.id, 'reject')}
-                        className="flex-1 bg-white p-5 rounded-2xl items-center justify-center border border-red-200"
-                    >
-                        <Text className="text-red-500 font-bold text-lg">Reject</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        onPress={() => handleAction(item.id, 'approve')}
-                        className="flex-1 bg-blue-600 p-5 rounded-2xl items-center justify-center shadow-lg shadow-blue-500/20"
-                    >
-                        <Text className="text-white font-bold text-lg">Approve</Text>
-                    </TouchableOpacity>
-                </View>
-              </View>
             )}
-            ListEmptyComponent={
-                <View className="items-center mt-20">
-                    <View className="bg-emerald-100 p-8 rounded-full mb-6">
-                        <ShieldCheck size={64} color="#059669" />
-                    </View>
-                    <Text className="text-slate-800 font-bold text-2xl mt-4">All Caught Up!</Text>
-                    <Text className="text-slate-400 text-center mt-2 px-12 text-lg">
-                        There are no pending contractor applications to review at this moment.
-                    </Text>
-                </View>
-            }
           />
       )}
+    </SafeAreaView>
+  );
+}
       {/* Document Viewer Modal */}
       {selectedDoc && (
         <Modal animationType="fade" transparent={true} visible={!!selectedDoc}>

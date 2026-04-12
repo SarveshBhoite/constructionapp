@@ -59,3 +59,23 @@ model Subscription {
   status        String   // 'PENDING', 'SUCCESS', 'FAILED'
   createdAt     DateTime @default(now())
 }
+
+model Review {
+  id           String   @id @default(uuid())
+  workerId     String
+  contractorId String
+  contractorName String
+  rating       Int      // 1-5
+  comment      String?
+  createdAt    DateTime @default(now())
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid())
+  role      String   // 'worker' or 'contractor'
+  userId    String
+  userName  String
+  message   String
+  status    String   @default("OPEN") // 'OPEN', 'IN_PROGRESS', 'RESOLVED'
+  createdAt DateTime @default(now())
+}

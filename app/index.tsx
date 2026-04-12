@@ -28,71 +28,83 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-8">
-        <View className="items-center mt-12 mb-12">
-          <View className="bg-blue-600 p-5 rounded-[40px] mb-6 shadow-2xl shadow-blue-200">
-            <HardHat color="white" size={48} strokeWidth={2.5} />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-8" showsVerticalScrollIndicator={false}>
+        {/* Splash/Logo Area */}
+        <View className="items-center mt-8 mb-16">
+          <View className="bg-blue-600 p-6 rounded-[45px] mb-6 shadow-2xl shadow-blue-300">
+            <HardHat color="white" size={64} strokeWidth={2.5} />
           </View>
-          <Text className="text-4xl font-bold text-slate-900 text-center tracking-tight">
+          <Text className="text-5xl font-extrabold text-slate-900 text-center tracking-tighter">
             Royal <Text className="text-blue-600">Connect</Text>
           </Text>
-          <Text className="text-slate-500 text-center mt-3 text-lg font-medium">
-            Building trust between builders and workers.
+          <Text className="text-slate-500 text-center mt-4 text-lg font-medium px-4">
+            The premium platform for construction excellence.
           </Text>
         </View>
 
-        <Text className="text-xl font-bold text-slate-800 mb-8">Get Started</Text>
+        {/* PRIMARY ACTION: LOGIN */}
+        <View className="mb-12">
+            <Text className="text-slate-400 font-bold mb-5 uppercase tracking-widest text-xs text-center">Welcome Back</Text>
+            <TouchableOpacity 
+                onPress={() => router.push('/login')}
+                activeOpacity={0.9}
+                className="bg-slate-900 w-full p-7 rounded-[35px] flex-row items-center justify-center shadow-2xl shadow-slate-400"
+            >
+                <UserCircle color="white" size={28} />
+                <Text className="text-white font-bold text-2xl ml-4">Log In Now</Text>
+            </TouchableOpacity>
+        </View>
+
+        <View className="flex-row items-center mb-12">
+            <View className="flex-1 h-[1px] bg-slate-100" />
+            <Text className="mx-6 text-slate-300 font-bold uppercase text-[10px] tracking-widest">New to Royal Connect?</Text>
+            <View className="flex-1 h-[1px] bg-slate-100" />
+        </View>
+
+        {/* SECONDARY ACTIONS: SIGNUP */}
+        <Text className="text-2xl font-black text-slate-900 mb-8 px-2 tracking-tight">Create Account</Text>
 
         <View className="space-y-6">
           {/* Labour Option */}
           <TouchableOpacity
             onPress={() => handleRoleSelection('labour')}
-            activeOpacity={0.9}
-            className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 flex-row items-center mb-6"
+            activeOpacity={0.8}
+            className="bg-blue-50/50 p-6 rounded-[35px] border border-blue-100 flex-row items-center mb-6"
           >
-            <View className="bg-blue-100 p-4 rounded-3xl mr-5">
-              <Users color="#1E40AF" size={32} />
+            <View className="bg-blue-600 p-4 rounded-3xl mr-5 shadow-lg shadow-blue-200">
+                <Users color="white" size={32} />
             </View>
             <View className="flex-1">
-              <Text className="text-xl font-bold text-slate-900">For Workers</Text>
-              <Text className="text-slate-500 font-medium">Find work & register (मजूर नोंदणी)</Text>
+              <Text className="text-2xl font-bold text-slate-900 mb-1">Worker (मजूर)</Text>
+              <Text className="text-blue-600/70 font-bold text-sm tracking-wide">Register to find work</Text>
             </View>
-            <ArrowRight color="#CBD5E1" size={20} />
+            <ArrowRight color="#2563EB" size={24} />
           </TouchableOpacity>
 
           {/* Contractor Option */}
           <TouchableOpacity
             onPress={() => handleRoleSelection('contractor')}
-            activeOpacity={0.9}
-            className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 flex-row items-center mb-10"
+            activeOpacity={0.8}
+            className="bg-slate-50 p-6 rounded-[35px] border border-slate-100 flex-row items-center mb-12"
           >
-            <View className="bg-blue-700 p-4 rounded-3xl mr-5">
-              <HardHat color="white" size={32} />
+            <View className="bg-slate-800 p-4 rounded-3xl mr-5 shadow-lg shadow-slate-200">
+                <HardHat color="white" size={32} />
             </View>
             <View className="flex-1">
-              <Text className="text-xl font-bold text-slate-900">For Contractors</Text>
-              <Text className="text-slate-500 font-medium">Hire workers (ठेकेदार)</Text>
+              <Text className="text-2xl font-bold text-slate-900 mb-1">Contractor (ठेकेदार)</Text>
+              <Text className="text-slate-500 font-bold text-sm tracking-wide">Hire professional labor</Text>
             </View>
-            <ArrowRight color="#CBD5E1" size={20} />
+            <ArrowRight color="#64748B" size={24} />
           </TouchableOpacity>
         </View>
 
-        {/* Login Area */}
-        <View className="mt-8 border-t border-slate-100 pt-10 items-center">
-            <Text className="text-slate-400 font-medium mb-4 uppercase tracking-widest text-xs">Already have an account?</Text>
-            <TouchableOpacity 
-                onPress={() => router.push('/login')}
-                className="bg-slate-900 w-full p-6 rounded-[32px] flex-row items-center justify-center shadow-xl mb-4"
-            >
-                <UserCircle color="white" size={24} />
-                <Text className="text-white font-bold text-xl ml-3">Log In Now</Text>
-            </TouchableOpacity>
-            
+        {/* Footer */}
+        <View className="mt-auto items-center pb-8 pt-4">
             <TouchableOpacity 
                 onPress={() => router.push('/admin/login')}
-                className="p-4"
+                className="bg-slate-100 px-8 py-4 rounded-full"
             >
-                <Text className="text-slate-500 font-bold">Admin Portal</Text>
+                <Text className="text-slate-500 font-black uppercase text-[10px] tracking-[4px]">Admin Portal</Text>
             </TouchableOpacity>
         </View>
       </ScrollView>

@@ -40,11 +40,15 @@ const workerRoutes = require("./src/routes/worker.routes");
 const paymentRoutes = require("./src/routes/payment.routes");
 const authRoutes = require("./src/routes/auth.routes");
 const adminRoutes = require("./src/routes/admin.routes");
+const reviewRoutes = require("./src/routes/review.routes");
+const supportRoutes = require("./src/routes/support.routes");
 
 app.use("/api/workers", workerRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/support", supportRoutes);
 
 // Catch-all for 404s to help debugging
 app.use((req, res, next) => {

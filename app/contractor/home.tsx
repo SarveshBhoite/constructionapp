@@ -23,10 +23,11 @@ export default function ContractorHome() {
   const [labours, setLabours] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchWorkers();
-    fetchProfile();
-  }, [selectedCategory, searchQuery]);
+  const [showMenu, setShowMenu] = useState(false);
+  const [activeModal, setActiveModal] = useState<'profile' | 'transactions' | 'support' | null>(null);
+  const [supportMsg, setSupportMsg] = useState('');
+  const [transactions, setTransactions] = useState([]);
+  const [userRating, setUserRating] = useState(0);
 
   const fetchProfile = async () => {
     try {
@@ -36,136 +37,108 @@ export default function ContractorHome() {
     } catch (e) {}
   };
 
-  const fetchWorkers = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API_URL}/workers`, {
-        params: {
-          category: selectedCategory,
-          query: searchQuery
-        }
-      });
-      setLabours(response.data);
-    } catch (error) {
-      console.error("Fetch Workers Error:", error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchTransactions = async () => {
+      try {
+          const res = await axios.get(`${API_URL}/payments/status/contractor/${user?.id}`);
+          setTransactions(res.data || []);
+      } catch (e) {}
   };
 
-  const handleSubscribe = async () => {
-    try {
-        setLoading(true);
-        // 1. Create Order on Backend
-        const orderResponse = await axios.post(`${API_URL}/payments/create-order`, {
-            amount: 500,
-            contractorId: user?.id || 'default-contractor'
-        });
+  useEffect(() => {
+    fetchWorkers();
+    fetchProfile();
+    fetchTransactions();
+  }, [selectedCategory, searchQuery]);
 
-        const order = orderResponse.data;
-
-        // 2. Open Razorpay Checkout (or Use Payment Link for Expo Go)
-        // Note: In Expo Go, RazorpayCheckout might be an empty object {}, so we check for .open
-        if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
-            console.log('Razorpay native module not found. Using Payment Link...');
-            try {
-                // Generate a real payment link
-                const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
-                    amount: 500,
-                    contractorId: user?.id
-                });
-                
-                Alert.alert(
-                    'Real UI Checkout',
-                    'Opening the REAL Razorpay Payment page in your browser for testing.',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { 
-                            text: 'Open Payment Page', 
-                            onPress: () => {
-                                Linking.openURL(linkRes.data.url);
-                                // Show a verification alert after return
-                                setTimeout(() => {
-                                    Alert.alert(
-                                        'Check Payment',
-                                        'Once you finish payment in the browser, click below to unlock your contacts.',
-                                        [
-                                            { text: 'Refresh Profile', onPress: fetchProfile }
-                                        ]
-                                    );
-                                }, 3000);
-                            } 
-                        }
-                    ]
-                );
-            } catch (e) {
-                Alert.alert('Error', 'Could not generate payment link.');
-            }
-            setLoading(false);
-            return;
-        }
-
-        const options = {
-            description: 'Full Access Subscription',
-            image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-            currency: 'INR',
-            key: RAZORPAY_KEY,
-            amount: order.amount,
-            name: 'Royal Construction',
-            order_id: order.id,
-            prefill: {
-                email: 'contractor@example.com',
-                contact: '919000000000',
-                name: user?.name || 'Contractor'
-            },
-            theme: { color: '#1E40AF' }
-        };
-
-        RazorpayCheckout.open(options).then(async (data: any) => {
-            // 3. Verify on Backend
-            try {
-                await axios.post(`${API_URL}/payments/verify`, {
-                    ...data,
-                    contractorId: user?.id || 'default-contractor'
-                });
-                // Update local auth store with new subscription status
-                if (user) {
-                  setAuth('contractor', { ...user, isSubscribed: true });
-                }
-                Alert.alert('Success!', 'Your subscription is now active! You can now see mobile numbers.');
-            } catch (err) {
-                Alert.alert('Error', 'Payment verification failed.');
-            }
-        }).catch((error: any) => {
-            console.log('Razorpay Error:', error);
-            Alert.alert('Payment Cancelled', 'Please try again to unlock contacts.');
-        });
-
-    } catch (error) {
-        console.error("Subscription Error:", error);
-        Alert.alert('Error', 'Could not initiate payment.');
-    } finally {
-        setLoading(false);
-    }
+  const handleRating = async (ratingValue: number) => {
+      if (!selectedLabour) return;
+      try {
+          await axios.post(`${API_URL}/reviews`, {
+              workerId: selectedLabour.id,
+              contractorId: user?.id,
+              contractorName: user?.name,
+              rating: ratingValue
+          });
+          setUserRating(ratingValue);
+          Alert.alert('Thank You', 'Your rating has been submitted!');
+          fetchWorkers(); // Refresh list to show new rating
+      } catch (e) {
+          Alert.alert('Error', 'Could not submit rating.');
+      }
   };
+
+  const submitSupport = async () => {
+      if (!supportMsg.trim()) return;
+      try {
+          setLoading(true);
+          await axios.post(`${API_URL}/support/ticket`, {
+              role: 'contractor',
+              userId: user?.id,
+              userName: user?.name,
+              message: supportMsg
+          });
+          Alert.alert('Success', 'Your message has been sent to the admin.');
+          setSupportMsg('');
+          setActiveModal(null);
+      } catch (e) {
+          Alert.alert('Error', 'Failed to send message.');
+      } finally {
+          setLoading(false);
+      }
+  };
+  
+  // Sidebar Component
+  const Sidebar = () => (
+      <Modal animationType="fade" transparent={true} visible={showMenu}>
+          <View className="flex-1 flex-row">
+              <TouchableOpacity activeOpacity={1} onPress={() => setShowMenu(false)} className="bg-black/50 w-1/4 h-full" />
+              <View className="bg-white w-3/4 h-full p-8 pt-20">
+                  <Text className="text-3xl font-black text-slate-900 mb-10">Menu</Text>
+                  
+                  <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('profile'); }} className="flex-row items-center mb-8">
+                      <View className="bg-blue-50 p-3 rounded-2xl mr-4"><User color="#1E40AF" size={24} /></View>
+                      <Text className="text-xl font-bold text-slate-700">माझी प्रोफाइल (Profile)</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('transactions'); }} className="flex-row items-center mb-8">
+                      <View className="bg-indigo-50 p-3 rounded-2xl mr-4"><History color="#4F46E5" size={24} /></View>
+                      <Text className="text-xl font-bold text-slate-700">व्यवहार (Transactions)</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('support'); }} className="flex-row items-center mb-10">
+                      <View className="bg-emerald-50 p-3 rounded-2xl mr-4"><MessageCircle color="#059669" size={24} /></View>
+                      <Text className="text-xl font-bold text-slate-700">मदत केंद्र (Support)</Text>
+                  </TouchableOpacity>
+
+                  <View className="h-[1px] bg-slate-100 w-full mb-10" />
+
+                  <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} className="flex-row items-center">
+                      <View className="bg-rose-50 p-3 rounded-2xl mr-4"><LogOut color="#E11D48" size={24} /></View>
+                      <Text className="text-xl font-bold text-rose-600">Log Out</Text>
+                  </TouchableOpacity>
+              </View>
+          </View>
+      </Modal>
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
+      <Sidebar />
       <View className="p-6 pb-0">
         <View className="flex-row justify-between items-center mb-6">
           <View>
             <Text className="text-slate-500 font-medium">Contractor Panel</Text>
             <Text className="text-2xl font-bold text-slate-900">{user?.name || 'Welcome'}</Text>
           </View>
-          <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-            <LogOut color="#1E40AF" size={20} />
+          <TouchableOpacity onPress={() => setShowMenu(true)} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+            <Search color="#1E40AF" size={20} />
           </TouchableOpacity>
         </View>
 
         {/* Subscription Alert Banner */}
         {!user?.isSubscribed && (
             <TouchableOpacity 
-                onPress={() => Alert.alert('Subscription', 'Subscribe to unlock worker contact details!')}
+                onPress={handleSubscribe}
                 className="bg-blue-600 p-6 rounded-[32px] mb-8 flex-row items-center border border-blue-400 shadow-xl shadow-blue-200"
             >
                 <View className="bg-white/20 p-3 rounded-2xl mr-4">
@@ -257,6 +230,7 @@ export default function ContractorHome() {
                 <TouchableOpacity 
                     onPress={async () => {
                       setSelectedLabour(item);
+                      setUserRating(0); // Reset for modal
                       // Increment View Count
                       try { await axios.post(`${API_URL}/workers/view/${item.id}`); } catch (e) {}
                     }}
@@ -268,7 +242,7 @@ export default function ContractorHome() {
                         <Text className="text-xl font-bold text-slate-900">{item.name}</Text>
                         <View className="flex-row items-center">
                         <Star size={14} color="#FBBF24" fill="#FBBF24" />
-                        <Text className="ml-1 text-slate-800 font-bold">{item.rating}</Text>
+                        <Text className="ml-1 text-slate-800 font-bold">{item.rating || 4.5}</Text>
                         </View>
                     </View>
                     <Text className="text-blue-700 font-bold mb-2 text-xs">
@@ -294,6 +268,105 @@ export default function ContractorHome() {
         )}
       </View>
 
+      {/* MODALS */}
+      {/* Profile Modal */}
+      {activeModal === 'profile' && (
+          <Modal animationType="slide" transparent={true} visible={true}>
+              <View className="flex-1 bg-black/60 justify-end">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]">
+                      <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
+                          <Text className="text-slate-400 font-bold">Close</Text>
+                      </TouchableOpacity>
+                      <Text className="text-2xl font-bold mb-6 text-center">Contractor Profile</Text>
+                      <View className="items-center mb-8">
+                           <Image 
+                              source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=1E40AF&color=fff` }} 
+                              className="w-24 h-24 rounded-3xl mb-4"
+                          />
+                          <Text className="text-xl font-bold text-slate-900">{user?.name}</Text>
+                          <Text className="text-slate-500 font-bold">{user?.phone}</Text>
+                      </View>
+                      <View className="space-y-4">
+                          <View className="bg-slate-50 p-6 rounded-3xl">
+                              <Text className="text-slate-400 font-bold text-xs uppercase mb-1">Company Name</Text>
+                              <Text className="text-slate-900 font-bold">{user?.companyName || 'Individual'}</Text>
+                          </View>
+                          <View className="bg-slate-50 p-6 rounded-3xl">
+                              <Text className="text-slate-400 font-bold text-xs uppercase mb-1">Subscription Status</Text>
+                              <Text className={`font-bold ${user?.isSubscribed ? 'text-emerald-600' : 'text-blue-600'}`}>
+                                  {user?.isSubscribed ? 'Active Subscription' : 'Not Subscribed'}
+                              </Text>
+                          </View>
+                      </View>
+                  </View>
+              </View>
+          </Modal>
+      )}
+
+      {/* Transactions Modal */}
+      {activeModal === 'transactions' && (
+          <Modal animationType="slide" transparent={true} visible={true}>
+              <View className="flex-1 bg-black/60 justify-end">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]">
+                      <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
+                          <Text className="text-slate-400 font-bold">Close</Text>
+                      </TouchableOpacity>
+                      <Text className="text-2xl font-bold mb-6 text-center">Payment History</Text>
+                      <FlatList 
+                          data={transactions}
+                          keyExtractor={(item: any) => item.id}
+                          renderItem={({item}) => (
+                              <View className="bg-slate-50 p-6 rounded-[28px] mb-4 flex-row items-center border border-slate-100">
+                                  <View className="bg-emerald-100 p-3 rounded-2xl mr-4">
+                                      <CheckCircle color="#059669" size={20} />
+                                  </View>
+                                  <View className="flex-1">
+                                      <Text className="text-slate-900 font-bold text-lg">Unlimited Access Purchase</Text>
+                                      <Text className="text-slate-400 font-medium">{new Date(item.createdAt).toLocaleDateString()}</Text>
+                                  </View>
+                                  <Text className="text-slate-900 font-black text-lg">₹{item.amount}</Text>
+                              </View>
+                          )}
+                          ListEmptyComponent={<Text className="text-center text-slate-400 mt-10">No transactions found.</Text>}
+                      />
+                  </View>
+              </View>
+          </Modal>
+      )}
+
+      {/* Support Modal */}
+      {activeModal === 'support' && (
+          <Modal animationType="slide" transparent={true} visible={true}>
+              <View className="flex-1 bg-black/60 justify-end">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[60%]">
+                      <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full self-center mb-6">
+                          <Text className="text-slate-400 font-bold">Close</Text>
+                      </TouchableOpacity>
+                      <Text className="text-2xl font-bold mb-2 text-center">Help & Support</Text>
+                      <Text className="text-slate-400 text-center mb-6 px-4">Contact admin for any issues or queries.</Text>
+                      
+                      <TextInput 
+                          placeholder="Tell us what you need help with..."
+                          placeholderTextColor="#94A3B8"
+                          multiline
+                          numberOfLines={4}
+                          value={supportMsg}
+                          onChangeText={setSupportMsg}
+                          className="bg-slate-50 p-6 rounded-[28px] text-lg text-slate-800 h-32 mb-6 border border-slate-100"
+                      />
+
+                      <TouchableOpacity 
+                          onPress={submitSupport}
+                          disabled={loading}
+                          className="bg-blue-600 w-full p-6 rounded-[28px] flex-row items-center justify-center shadow-lg shadow-blue-400"
+                      >
+                          {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-xl">Send Message</Text>}
+                      </TouchableOpacity>
+                  </View>
+              </View>
+          </Modal>
+      )}
+
       {/* Labour Detail Modal */}
       {selectedLabour && (
         <Modal animationType="slide" transparent={true} visible={!!selectedLabour}>
@@ -311,9 +384,15 @@ export default function ContractorHome() {
                   />
                   <Text className="text-3xl font-bold text-slate-900">{selectedLabour.name}</Text>
                   <Text className="text-blue-700 font-bold text-lg mb-2">{selectedLabour.categoryMr} ({selectedLabour.categoryEn})</Text>
-                  <View className="flex-row items-center bg-blue-50 px-4 py-2 rounded-full">
-                    <Star size={20} color="#FBBF24" fill="#FBBF24" />
-                    <Text className="ml-2 text-blue-900 text-xl font-bold">{selectedLabour.rating}</Text>
+                  
+                  {/* INTERACTIVE STARS */}
+                  <View className="flex-row items-center space-x-2 mt-2 bg-slate-100 px-6 py-4 rounded-full">
+                    {[1,2,3,4,5].map(star => (
+                        <TouchableOpacity key={star} onPress={() => handleRating(star)}>
+                           <Star size={24} color="#FBBF24" fill={ (userRating || selectedLabour.rating || 4.5) >= star ? "#FBBF24" : "transparent"} />
+                        </TouchableOpacity>
+                    ))}
+                    <Text className="ml-2 text-slate-900 font-bold text-xl">{selectedLabour.rating || 4.5}</Text>
                   </View>
                 </View>
 
@@ -390,3 +469,4 @@ export default function ContractorHome() {
     </SafeAreaView>
   );
 }
+

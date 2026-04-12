@@ -171,7 +171,7 @@ router.post("/create-link", async (req, res) => {
   }
 });
 
-// Check Subscription Status
+// Check Subscription Status by Order ID
 router.get("/status/:orderId", async (req, res) => {
   try {
     const sub = await prisma.subscription.findFirst({
@@ -182,6 +182,32 @@ router.get("/status/:orderId", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: "Check failed" });
   }
+});
+
+// Get Worker Transactions
+router.get("/status/worker/:id", async (req, res) => {
+    try {
+        const subs = await prisma.subscription.findMany({
+            where: { userId: req.params.id, status: "SUCCESS" },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(subs);
+    } catch (e) {
+        res.status(500).json({ error: "Fetch failed" });
+    }
+});
+
+// Get Contractor Transactions
+router.get("/status/contractor/:id", async (req, res) => {
+    try {
+        const subs = await prisma.subscription.findMany({
+            where: { contractorId: req.params.id, status: "SUCCESS" },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(subs);
+    } catch (e) {
+        res.status(500).json({ error: "Fetch failed" });
+    }
 });
 
 module.exports = router;
