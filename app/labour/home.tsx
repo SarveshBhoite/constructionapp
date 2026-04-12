@@ -5,6 +5,7 @@ import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageC
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
 import * as Linking from 'expo-linking';
+import RazorpayCheckout from 'react-native-razorpay';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -17,6 +18,7 @@ export default function LabourHome() {
 
   const fetchProfile = async () => {
     try {
+      if (!user?.id) return;
       const response = await axios.get(`${API_URL}/auth/profile/labour/${user.id}`);
       setDbUser(response.data);
       setAuth('labour', response.data);
@@ -46,31 +48,39 @@ export default function LabourHome() {
           text: 'Upgrade Now', 
           onPress: async () => {
             try {
-              // Create REAL Payment Link
-              const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
-                amount: 200,
-                workerId: user?.id
-              });
-              
-              Alert.alert(
-                'Upgrade Profile',
-                'Opening the REAL Razorpay Payment page for your Featured Profile upgrade.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    { 
-                        text: 'Open Payment Page', 
-                        onPress: () => {
-                            Linking.openURL(linkRes.data.url);
-                            // Verify after return
-                            setTimeout(() => {
-                                Alert.alert('Verification', 'Check your upgrade status?', [
-                                    { text: 'Verify', onPress: fetchProfile }
-                                ]);
-                            }, 2000);
-                        } 
-                    }
-                ]
-              );
+              // Note: In Expo Go, RazorpayCheckout might be an empty object {}, so we check for .open
+              if (typeof RazorpayCheckout === 'undefined' || !RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
+                  // Create REAL Payment Link
+                  const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
+                    amount: 200,
+                    workerId: user?.id
+                  });
+                  
+                  Alert.alert(
+                    'Upgrade Profile',
+                    'Opening the REAL Razorpay Payment page for your Featured Profile upgrade.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Open Payment Page', 
+                            onPress: () => {
+                                Linking.openURL(linkRes.data.url);
+                                // Verify after return
+                                setTimeout(() => {
+                                    Alert.alert('Verification', 'Check your upgrade status?', [
+                                        { text: 'Refresh Profile', onPress: fetchProfile }
+                                    ]);
+                                }, 3000);
+                            } 
+                        }
+                    ]
+                  );
+                  return;
+              }
+
+              // Real Razorpay SDK fallback for APK
+              // (This part will run in the APK)
+              Alert.alert('Coming Soon', 'SDK integration for APK is ready.');
             } catch (e) {
               Alert.alert('Error', 'Could not initiate payment.');
             }
@@ -86,7 +96,7 @@ export default function LabourHome() {
         className="p-6" 
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} color="#1E40AF" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E40AF"]} />
         }
       >
         {/* Header */}

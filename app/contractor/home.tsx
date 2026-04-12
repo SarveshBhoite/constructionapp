@@ -30,6 +30,7 @@ export default function ContractorHome() {
 
   const fetchProfile = async () => {
     try {
+      if (!user?.id) return;
       const response = await axios.get(`${API_URL}/auth/profile/contractor/${user.id}`);
       setAuth('contractor', response.data);
     } catch (e) {}
@@ -64,8 +65,9 @@ export default function ContractorHome() {
         const order = orderResponse.data;
 
         // 2. Open Razorpay Checkout (or Use Payment Link for Expo Go)
-        if (!RazorpayCheckout) {
-            console.log('Razorpay module not found (Expo Go). Using Payment Link...');
+        // Note: In Expo Go, RazorpayCheckout might be an empty object {}, so we check for .open
+        if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
+            console.log('Razorpay native module not found. Using Payment Link...');
             try {
                 // Generate a real payment link
                 const linkRes = await axios.post(`${API_URL}/payments/create-link`, {
@@ -85,13 +87,13 @@ export default function ContractorHome() {
                                 // Show a verification alert after return
                                 setTimeout(() => {
                                     Alert.alert(
-                                        'Payment Verification',
-                                        'Did you complete the payment?',
+                                        'Check Payment',
+                                        'Once you finish payment in the browser, click below to unlock your contacts.',
                                         [
-                                            { text: 'Verify Now', onPress: fetchProfile }
+                                            { text: 'Refresh Profile', onPress: fetchProfile }
                                         ]
                                     );
-                                }, 2000);
+                                }, 3000);
                             } 
                         }
                     ]
@@ -113,8 +115,8 @@ export default function ContractorHome() {
             order_id: order.id,
             prefill: {
                 email: 'contractor@example.com',
-                contact: '9999999999',
-                name: 'Contractor Name'
+                contact: '919000000000',
+                name: user?.name || 'Contractor'
             },
             theme: { color: '#1E40AF' }
         };
@@ -127,20 +129,16 @@ export default function ContractorHome() {
                     contractorId: user?.id || 'default-contractor'
                 });
                 // Update local auth store with new subscription status
-                setAuth('contractor', { ...user, isSubscribed: true });
+                if (user) {
+                  setAuth('contractor', { ...user, isSubscribed: true });
+                }
                 Alert.alert('Success!', 'Your subscription is now active! You can now see mobile numbers.');
             } catch (err) {
                 Alert.alert('Error', 'Payment verification failed.');
             }
         }).catch((error: any) => {
             console.log('Razorpay Error:', error);
-            // Fallback for simulation in case the alert didn't catch it
-            if (!RazorpayCheckout) {
-                Alert.alert('Simulated Success', 'Dev mode activated.');
-                setAuth('contractor', { ...user, isSubscribed: true });
-            } else {
-                Alert.alert('Payment Cancelled', 'Please try again to unlock contacts.');
-            }
+            Alert.alert('Payment Cancelled', 'Please try again to unlock contacts.');
         });
 
     } catch (error) {

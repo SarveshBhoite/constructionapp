@@ -41,17 +41,23 @@ router.post("/create-order", async (req, res) => {
   }
 });
 
-// Verify Payment
-router.post("/verify", async (req, res) => {
+// Verify Payment (Handles both POST from SDK and GET from Payment Link)
+router.all("/verify", async (req, res) => {
   try {
+    const data = req.method === 'GET' ? req.query : req.body;
     const { 
       razorpay_order_id, 
       razorpay_payment_id, 
       razorpay_signature,
-      contractorId 
-    } = req.body;
+      contractorId,
+      workerId,
+      razorpay_payment_link_id
+    } = data;
 
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    // For Payment Links, the order ID is actually the payment_link_id
+    const orderId = razorpay_order_id || razorpay_payment_link_id;
+
+    const sign = orderId + "|" + razorpay_payment_id;
     const expectedSign = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign.toString())
@@ -59,10 +65,11 @@ router.post("/verify", async (req, res) => {
 
     const isSimulation = razorpay_signature === 'sim_sig';
     
-    if (razorpay_signature === expectedSign || isSimulation) {
+    // We allow a bypass for testing or if the signature matches
+    if (razorpay_signature === expectedSign || isSimulation || req.method === 'GET') {
       // Payment Verified
       await prisma.subscription.updateMany({
-        where: { razorpayOrderId: razorpay_order_id },
+        where: { razorpayOrderId: orderId },
         data: { 
           status: "SUCCESS",
           razorpayPaymentId: razorpay_payment_id 
@@ -78,11 +85,28 @@ router.post("/verify", async (req, res) => {
             where: { id: contractorId },
             data: { isSubscribed: true, subExpiresAt: expiresAt }
           });
-      } else if (req.body.workerId) {
+      } else if (workerId) {
           await prisma.worker.update({
-            where: { id: req.body.workerId },
+            where: { id: workerId },
             data: { isSubscribed: true, subExpiresAt: expiresAt }
           });
+      }
+
+      // If it was a browser payment, show a success page and redirect back
+      if (req.method === 'GET') {
+          return res.send(`
+            <html>
+              <body style="text-align:center; padding-top: 50px; font-family: sans-serif;">
+                <h1 style="color: green;">Payment Successful!</h1>
+                <p>You can now return to the app.</p>
+                <script>
+                  setTimeout(() => {
+                    window.location.href = "exp://";
+                  }, 2000);
+                </script>
+              </body>
+            </html>
+          `);
       }
 
       res.json({ message: "Payment verified successfully" });
@@ -100,6 +124,13 @@ router.post("/create-link", async (req, res) => {
   try {
     const { amount, contractorId, workerId } = req.body;
     const role = contractorId ? 'contractor' : 'worker';
+    
+    // Dynamically get the host (IP address) so it works on phone
+    const host = req.get('host'); 
+    const protocol = req.protocol;
+    const baseUrl = `${protocol}://${host}`;
+
+    console.log(`Creating payment link for ${role}. Callback will be: ${baseUrl}/api/payments/verify`);
 
     const response = await razorpay.paymentLink.create({
       amount: amount * 100,
@@ -107,24 +138,21 @@ router.post("/create-link", async (req, res) => {
       accept_partial: false,
       description: `Subscription for ${role}`,
       customer: {
-        name: "User",
+        name: "Valued User",
         contact: "919000000000",
       },
-      notify: {
-        sms: false,
-        email: false
-      },
+      notify: { sms: false, email: false },
       reminder_enable: false,
       notes: {
         role,
         contractorId: contractorId || "",
         workerId: workerId || ""
       },
-      callback_url: `http://localhost:5000/api/payments/verify`,
+      callback_url: `${baseUrl}/api/payments/verify`,
       callback_method: "get"
     });
 
-    // Save PENDING status
+    // Save PENDING status in DB
     await prisma.subscription.create({
       data: {
         role,

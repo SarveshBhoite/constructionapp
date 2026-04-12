@@ -4,13 +4,22 @@ import { useRouter } from 'expo-router';
 import { ShieldCheck, LogOut, CheckCircle2, XCircle, FileText, ChevronRight, Users, Building, AlertTriangle, Activity } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
+import { Modal } from 'react-native';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+interface Contractor {
+  id: string;
+  name: string;
+  phone: string;
+  companyName?: string;
+  idProof?: string;
+  isApproved: boolean;
+}
 
 export default function AdminDashboard() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
-  const [contractors, setContractors] = useState([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
@@ -108,7 +117,7 @@ export default function AdminDashboard() {
             keyExtractor={item => item.id}
             contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
             refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} color="#1E40AF" />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1E40AF"]} />
             }
             renderItem={({ item }) => (
               <View className="bg-white p-6 rounded-[40px] mb-6 shadow-sm border border-slate-100">
@@ -132,7 +141,7 @@ export default function AdminDashboard() {
                     
                     {item.idProof ? (
                         <TouchableOpacity 
-                            onPress={() => setSelectedDoc(item.idProof)}
+                            onPress={() => setSelectedDoc(item.idProof || null)}
                             className="w-full h-40 rounded-2xl overflow-hidden mb-4 border border-slate-200"
                         >
                             <Image source={{ uri: item.idProof }} className="w-full h-full" resizeMode="cover" />
@@ -182,6 +191,27 @@ export default function AdminDashboard() {
                 </View>
             }
           />
+      )}
+      {/* Document Viewer Modal */}
+      {selectedDoc && (
+        <Modal animationType="fade" transparent={true} visible={!!selectedDoc}>
+          <View className="flex-1 bg-black/95 justify-center items-center">
+            <TouchableOpacity 
+              onPress={() => setSelectedDoc(null)}
+              className="absolute top-12 right-6 z-10 bg-white/20 p-3 rounded-full"
+            >
+              <XCircle color="white" size={32} />
+            </TouchableOpacity>
+            
+            <Image 
+              source={{ uri: selectedDoc }} 
+              className="w-full h-[80%]" 
+              resizeMode="contain" 
+            />
+            
+            <Text className="text-white/60 mt-6 font-medium">Identity Document Verification</Text>
+          </View>
+        </Modal>
       )}
     </SafeAreaView>
   );

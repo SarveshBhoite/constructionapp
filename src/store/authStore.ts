@@ -12,6 +12,9 @@ interface UserProfile {
   profileImage?: string;
   companyName?: string;
   isSubscribed?: boolean;
+  isApproved?: boolean;
+  views?: number;
+  idProof?: string;
 }
 
 interface AuthState {
