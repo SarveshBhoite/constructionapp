@@ -1,9 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
 
-// Use the correct Prisma 7 property name: datasourceUrl
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
+// Simple, stable initialization for standard Node.js environments
+const prisma = new PrismaClient();
 
 module.exports = prisma;
