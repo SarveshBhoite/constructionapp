@@ -520,7 +520,7 @@ export default function ContractorHome() {
                       <View className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
                       <Text className="text-white/40 mb-4 font-inter-bold uppercase text-[10px] tracking-[4px]">Secure Contact Line</Text>
                       
-                      {user?.isSubscribed ? (
+                      {user?.isSubscribed && selectedLabour?.isSubscribed ? (
                         <Text className="text-white text-4xl font-inter-black mb-10 tracking-[1px]">
                           +91 {selectedLabour.phone}
                         </Text>
@@ -529,7 +529,9 @@ export default function ContractorHome() {
                             <Text className="text-white text-4xl font-inter-black blur-lg opacity-20">
                             +91 XXXXX XXXXX
                             </Text>
-                            <Text className="text-primary font-inter-black text-xs mt-2 uppercase">Subscription Locked</Text>
+                            <Text className="text-primary font-inter-black text-[10px] mt-2 uppercase tracking-widest">
+                                {!user?.isSubscribed ? "Your Subscription Required" : "Worker Subscription Required"}
+                            </Text>
                         </View>
                       )}
                       
@@ -539,8 +541,12 @@ export default function ContractorHome() {
                             className="bg-primary w-full py-7 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-primary/30"
                         >
                           <ShieldCheck color="white" size={24} strokeWidth={2.5} />
-                          <Text className="text-white font-inter-black text-xl ml-3 uppercase tracking-tighter">Premium Access</Text>
+                          <Text className="text-white font-inter-black text-xl ml-3 uppercase tracking-tighter">Upgrade My Plan</Text>
                         </TouchableOpacity>
+                      ) : !selectedLabour?.isSubscribed ? (
+                        <View className="bg-white/10 w-full py-7 rounded-[32px] items-center border border-white/20">
+                           <Text className="text-white font-inter-bold text-center px-6">Viewing this worker's number requires them to have an active subscription.</Text>
+                        </View>
                       ) : (
                         <TouchableOpacity 
                             onPress={() => Linking.openURL(`tel:+91${selectedLabour.phone}`)}
