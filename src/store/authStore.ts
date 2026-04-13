@@ -15,6 +15,10 @@ interface UserProfile {
   companyName?: string;
   categoryEn?: string;
   categoryMr?: string;
+  experienceYears?: number;
+  about?: string;
+  wages?: number;
+  wageType?: string;
   isSubscribed?: boolean;
   isApproved?: boolean;
   views?: number;

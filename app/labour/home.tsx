@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator, RefreshControl, Modal, FlatList, TextInput, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator, RefreshControl, Modal, FlatList, TextInput, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageCircle, Star, AlertCircle, Eye, ShieldCheck, CreditCard as CardIcon } from 'lucide-react-native';
+import { User, LogOut, CreditCard, ChevronRight, CheckCircle2, History, MessageCircle, Star, AlertCircle, Eye, ShieldCheck, CreditCard as CardIcon, X, Edit, Save, Briefcase, MapPin } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
 import * as Linking from 'expo-linking';
@@ -22,11 +22,16 @@ export default function LabourHome() {
   const [supportMsg, setSupportMsg] = useState('');
   const [transactions, setTransactions] = useState([]);
 
+  // Profile Edit State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
+
   const fetchProfile = async () => {
     try {
       if (!user?.id) return;
       const response = await axios.get(`${API_URL}/auth/profile/labour/${user.id}`);
       setDbUser(response.data);
+      setEditData(response.data);
       setAuth('labour', response.data);
     } catch (error) {
       console.error('Fetch Profile Error:', error);
@@ -51,6 +56,21 @@ export default function LabourHome() {
     setRefreshing(true);
     fetchProfile();
     fetchTransactions();
+  };
+
+  const handleUpdateProfile = async () => {
+      try {
+          setLoading(true);
+          const res = await axios.put(`${API_URL}/auth/profile/labour/${user?.id}`, editData);
+          setDbUser(res.data.user);
+          setAuth('labour', res.data.user);
+          setIsEditing(false);
+          Alert.alert('Success', 'Profile updated successfully!');
+      } catch (e) {
+          Alert.alert('Error', 'Failed to update profile.');
+      } finally {
+          setLoading(false);
+      }
   };
 
   const handleSubscription = async () => {
@@ -218,52 +238,147 @@ export default function LabourHome() {
 
         <Text className="text-lg font-inter-black text-secondary mb-6 tracking-tight">Management Suite</Text>
         <View className="space-y-4">
-          <TouchableOpacity onPress={() => setActiveModal('profile')} className="flex-row items-center bg-white p-7 rounded-[32px] shadow-sm border border-slate-100 mb-4">
-            <View className="bg-slate-50 p-4 rounded-2xl mr-5 font-inter-bold text-secondary text-lg leading-6 px-6"><User color="#0F172A" size={24} /></View>
-            <Text className="flex-1 text-xl font-inter-bold text-secondary">My Professional Profile</Text>
+          <TouchableOpacity onPress={() => { setActiveModal('profile'); setIsEditing(false); }} className="flex-row items-center bg-white p-7 rounded-[32px] shadow-sm border border-slate-100 mb-4">
+            <View className="bg-slate-50 p-4 rounded-2xl mr-5"><User color="#0F172A" size={24} /></View>
+            <View className="flex-1">
+                <Text className="text-xl font-inter-bold text-secondary">My Professional Profile</Text>
+                <Text className="text-xs text-slate-400 font-inter-medium">माझी प्रोफाइल</Text>
+            </View>
             <ChevronRight color="#CBD5E1" size={20} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setActiveModal('transactions')} className="flex-row items-center bg-white p-7 rounded-[32px] shadow-sm border border-slate-100 mb-4">
             <View className="bg-slate-50 p-4 rounded-2xl mr-5"><History color="#0F172A" size={24} /></View>
-            <Text className="flex-1 text-xl font-inter-bold text-secondary">Financial History</Text>
+            <View className="flex-1">
+                <Text className="text-xl font-inter-bold text-secondary">Financial History</Text>
+                <Text className="text-xs text-slate-400 font-inter-medium">व्यवहार</Text>
+            </View>
             <ChevronRight color="#CBD5E1" size={20} />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setActiveModal('support')} className="flex-row items-center bg-white p-7 rounded-[32px] shadow-sm border border-slate-100 mb-8">
+          <TouchableOpacity onPress={() => setActiveModal('support')} className="flex-row items-center bg-white p-7 rounded-[32px] shadow-sm border border-slate-100 mb-[100px]">
             <View className="bg-slate-50 p-4 rounded-2xl mr-5"><MessageCircle color="#0F172A" size={24} /></View>
-            <Text className="flex-1 text-xl font-inter-bold text-secondary">Support Desk</Text>
+             <View className="flex-1">
+                <Text className="text-xl font-inter-bold text-secondary">Support Desk</Text>
+                <Text className="text-xs text-slate-400 font-inter-medium">मदत केंद्र</Text>
+            </View>
             <ChevronRight color="#CBD5E1" size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* User Modals (Apply same design) */}
+        {/* Profile Modal - Expanded & Editable */}
         {activeModal === 'profile' && (
             <Modal animationType="slide" transparent={true} visible={true}>
+                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
                 <View className="flex-1 bg-black/60 justify-end">
-                    <View className="bg-white rounded-t-[48px] p-8 h-[75%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                        <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
-                        <Text className="text-3xl font-inter-black mb-10 text-center text-secondary">Professional Identity</Text>
-                        <View className="items-center mb-10">
-                             <Image source={{ uri: dbUser?.profileImage || `https://ui-avatars.com/api/?name=${dbUser?.name}&background=2563EB&color=fff` }} className="w-28 h-28 rounded-[36px] shadow-xl mb-6 border-4 border-slate-50" />
-                            <Text className="text-2xl font-inter-bold text-secondary mb-1">{dbUser?.name}</Text>
-                            <Text className="text-slate-400 font-inter-medium text-lg">{dbUser?.phone}</Text>
+                    <View className="bg-white rounded-t-[48px] h-[92%] shadow-2xl">
+                        <View className="p-8 pb-4 flex-row justify-between items-center border-b border-slate-50">
+                            <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-50 p-3 rounded-full">
+                                <X color="#94A3B8" size={24} />
+                            </TouchableOpacity>
+                            <Text className="text-2xl font-inter-black text-secondary">Profile Identity</Text>
+                            <TouchableOpacity onPress={() => isEditing ? handleUpdateProfile() : setIsEditing(true)} className={`${isEditing ? 'bg-primary' : 'bg-slate-50'} p-3 rounded-full flex-row items-center px-4`}>
+                                {isEditing ? <Save color="white" size={20} /> : <Edit color="#2563EB" size={20} />}
+                                <Text className={`ml-2 font-inter-bold ${isEditing ? 'text-white' : 'text-primary'}`}>{isEditing ? 'Save' : 'Edit'}</Text>
+                            </TouchableOpacity>
                         </View>
-                        <View className="space-y-4">
-                            <View className="bg-slate-50 p-7 rounded-[32px] border border-slate-100">
-                                <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-1">Service Tier</Text>
-                                <Text className="text-secondary font-inter-bold text-xl">{dbUser?.categoryMr} ({dbUser?.categoryEn})</Text>
+
+                        <ScrollView className="p-8" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                            <View className="items-center mb-10">
+                                <Image source={{ uri: dbUser?.profileImage || `https://ui-avatars.com/api/?name=${dbUser?.name}&background=2563EB&color=fff` }} className="w-28 h-28 rounded-[36px] shadow-xl mb-4 border-4 border-slate-50" />
+                                <Text className="text-2xl font-inter-black text-secondary">{dbUser?.name}</Text>
+                                <Text className="text-slate-400 font-inter-bold">{dbUser?.phone}</Text>
                             </View>
-                            <View className="bg-slate-50 p-7 rounded-[32px] border border-slate-100">
-                                <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-1">Active Region</Text>
-                                <Text className="text-secondary font-inter-bold text-xl">{dbUser?.city}, {dbUser?.state}</Text>
+
+                            <View className="space-y-6">
+                                <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-4">
+                                    <View className="flex-row items-center mb-4">
+                                        <Briefcase size={20} color="#2563EB" />
+                                        <Text className="ml-3 text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Service & Experience</Text>
+                                    </View>
+                                    <Text className="text-secondary font-inter-bold text-lg mb-2">{dbUser?.categoryEn}</Text>
+                                    <View className="flex-row items-center justify-between mt-4">
+                                        <Text className="text-slate-500 font-inter-medium">Years of Experience</Text>
+                                        {isEditing ? (
+                                            <TextInput 
+                                                keyboardType="numeric"
+                                                value={editData?.experienceYears?.toString()}
+                                                onChangeText={(val) => setEditData({...editData, experienceYears: parseInt(val) || 0})}
+                                                className="bg-white px-6 py-2 rounded-xl text-primary font-inter-black border border-slate-100"
+                                            />
+                                        ) : (
+                                            <Text className="text-secondary font-inter-black text-lg">{dbUser?.experienceYears || 0} Years</Text>
+                                        )}
+                                    </View>
+                                    <View className="flex-row items-center justify-between mt-4">
+                                        <Text className="text-slate-500 font-inter-medium">Daily Wages (₹)</Text>
+                                        {isEditing ? (
+                                            <TextInput 
+                                                keyboardType="numeric"
+                                                value={editData?.wages?.toString()}
+                                                onChangeText={(val) => setEditData({...editData, wages: parseInt(val) || 0})}
+                                                className="bg-white px-6 py-2 rounded-xl text-primary font-inter-black border border-slate-100"
+                                            />
+                                        ) : (
+                                            <Text className="text-secondary font-inter-black text-lg">₹{dbUser?.wages || 0}</Text>
+                                        )}
+                                    </View>
+                                </View>
+
+                                <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-4">
+                                    <View className="flex-row items-center mb-4">
+                                        <MapPin size={20} color="#2563EB" />
+                                        <Text className="ml-3 text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Operating Location</Text>
+                                    </View>
+                                    <View className="flex-row space-x-2">
+                                        <View className="flex-1">
+                                            <Text className="text-[10px] text-slate-400 mb-1 font-inter-bold">CITY</Text>
+                                            {isEditing ? (
+                                                <TextInput 
+                                                    value={editData?.city}
+                                                    onChangeText={(val) => setEditData({...editData, city: val})}
+                                                    className="bg-white p-4 rounded-2xl font-inter-bold border border-slate-100"
+                                                />
+                                            ) : (
+                                                <Text className="text-secondary font-inter-bold">{dbUser?.city}</Text>
+                                            )}
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text className="text-[10px] text-slate-400 mb-1 font-inter-bold">STATE</Text>
+                                             {isEditing ? (
+                                                <TextInput 
+                                                    value={editData?.state}
+                                                    onChangeText={(val) => setEditData({...editData, state: val})}
+                                                    className="bg-white p-4 rounded-2xl font-inter-bold border border-slate-100"
+                                                />
+                                            ) : (
+                                                <Text className="text-secondary font-inter-bold">{dbUser?.state}</Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-20">
+                                    <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-4 leading-4">Professional Bio (About me)</Text>
+                                    {isEditing ? (
+                                        <TextInput 
+                                            multiline
+                                            numberOfLines={4}
+                                            value={editData?.about}
+                                            onChangeText={(val) => setEditData({...editData, about: val})}
+                                            className="bg-white p-6 rounded-[28px] font-inter-medium text-slate-700 h-32 border border-slate-100"
+                                        />
+                                    ) : (
+                                        <Text className="text-slate-700 font-inter-medium text-base leading-6">
+                                            {dbUser?.about || 'No description provided yet. Add one to attract more contractors!'}
+                                        </Text>
+                                    )}
+                                </View>
                             </View>
-                        </View>
-                        <TouchableOpacity onPress={() => setActiveModal(null)} className="mt-auto bg-slate-900 w-full py-6 rounded-[32px] items-center">
-                            <Text className="text-white font-inter-bold text-xl">Close</Text>
-                        </TouchableOpacity>
+                        </ScrollView>
                     </View>
                 </View>
+                </KeyboardAvoidingView>
             </Modal>
         )}
 
@@ -272,8 +387,10 @@ export default function LabourHome() {
             <Modal animationType="slide" transparent={true} visible={true}>
                 <View className="flex-1 bg-black/60 justify-end">
                     <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                        <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
-                        <Text className="text-3xl font-inter-black mb-10 text-center text-secondary">Payment Ledger</Text>
+                        <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-50 p-3 rounded-full self-start mb-6">
+                            <X color="#94A3B8" size={24} />
+                        </TouchableOpacity>
+                        <Text className="text-3xl font-inter-black mb-10 text-center text-secondary">Transaction Ledger</Text>
                         <FlatList 
                             data={transactions}
                             keyExtractor={(item: any) => item.id}
@@ -282,7 +399,7 @@ export default function LabourHome() {
                                 <View className="bg-slate-50 p-6 rounded-[32px] mb-4 flex-row items-center border border-slate-100">
                                     <View className="bg-emerald-100 p-3 rounded-2xl mr-5"><CheckCircle2 color="#059669" size={24} /></View>
                                     <View className="flex-1">
-                                        <Text className="text-secondary font-inter-bold text-lg">Featured Purchase</Text>
+                                        <Text className="text-secondary font-inter-bold text-lg">Featured Unlock</Text>
                                         <Text className="text-slate-400 font-inter-medium">{new Date(item.createdAt).toLocaleDateString()}</Text>
                                     </View>
                                     <Text className="text-secondary font-inter-black text-xl">₹{item.amount}</Text>
@@ -296,7 +413,7 @@ export default function LabourHome() {
                             }
                         />
                          <TouchableOpacity onPress={() => setActiveModal(null)} className="mt-6 bg-slate-900 w-full py-6 rounded-[32px] items-center">
-                            <Text className="text-white font-inter-bold text-xl">Done</Text>
+                            <Text className="text-white font-inter-bold text-xl">Close</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -308,12 +425,18 @@ export default function LabourHome() {
             <Modal animationType="slide" transparent={true} visible={true}>
                 <View className="flex-1 bg-black/60 justify-end">
                     <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                        <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
-                        <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Help & Concierge</Text>
+                         <View className="flex-row justify-between items-center mb-8">
+                            <View className="w-10" />
+                            <View className="w-16 h-1 bg-slate-200 rounded-full" />
+                            <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 p-2 rounded-full">
+                                <X color="#94A3B8" size={20} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Concierge Help</Text>
                         <Text className="text-slate-400 text-center mb-10 font-inter-medium text-lg px-6 leading-6">Describe your issue and we'll respond within 24 hours.</Text>
                         <TextInput placeholder="How can we assist you today?" placeholderTextColor="#94A3B8" multiline numberOfLines={4} value={supportMsg} onChangeText={setSupportMsg} className="bg-slate-50 p-8 rounded-[36px] font-inter-medium text-lg text-secondary h-40 mb-10 border border-slate-100" />
                         <TouchableOpacity onPress={submitSupport} disabled={loading} className="bg-primary w-full py-6 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-primary/20">
-                            {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-inter-bold text-xl">Send Direct Message</Text>}
+                            {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-inter-bold text-xl">Inquiry Support</Text>}
                         </TouchableOpacity>
                     </View>
                 </View>

@@ -48,14 +48,14 @@ router.delete("/reject-contractor/:id", async (req, res) => {
 // Get Admin Stats
 router.get("/stats", async (req, res) => {
   try {
-    const workerCount = await prisma.worker.count();
-    const contractorCount = await prisma.contractor.count();
+    const totalWorkers = await prisma.worker.count();
+    const totalContractors = await prisma.contractor.count();
     const pendingContractors = await prisma.contractor.count({ where: { isApproved: false } });
     const openTickets = await prisma.supportTicket.count({ where: { status: "OPEN" } });
 
     res.json({
-      workerCount,
-      contractorCount,
+      totalWorkers,
+      totalContractors,
       pendingContractors,
       openTickets
     });
@@ -63,6 +63,18 @@ router.get("/stats", async (req, res) => {
     console.error("Fetch Stats Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// Get All Support Tickets
+router.get("/support-tickets", async (req, res) => {
+    try {
+        const tickets = await prisma.supportTicket.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        res.json(tickets);
+    } catch (e) {
+        res.status(500).json({ error: "Internal server error" });
+    }
 });
 
 // Get All Workers

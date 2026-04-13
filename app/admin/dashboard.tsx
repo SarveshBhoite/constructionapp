@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Alert, Image, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Alert, Image, StatusBar, RefreshControl, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Users, ShieldCheck, Clock, MessageSquare, LogOut, Search, MapPin, CheckCircle2, ChevronRight, LayoutDashboard, UserCheck } from 'lucide-react-native';
+import { Users, ShieldCheck, Clock, MessageSquare, LogOut, Search, MapPin, CheckCircle2, ChevronRight, LayoutDashboard, UserCheck, X, FileText, ExternalLink } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
 
@@ -17,32 +17,35 @@ export default function AdminDashboard() {
   const [userTab, setUserTab] = useState<'workers' | 'contractors'>('workers');
   
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<any>(null);
-  const [pendingWorkers, setPendingWorkers] = useState<any[]>([]);
+  const [pendingContractors, setPendingContractors] = useState<any[]>([]);
   const [allWorkers, setAllWorkers] = useState<any[]>([]);
   const [allContractors, setAllContractors] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
+      if (!refreshing) setLoading(true);
       const [statsRes, pendingRes, workersRes, contractorsRes, ticketsRes] = await Promise.all([
         axios.get(`${API_URL}/admin/stats`),
-        axios.get(`${API_URL}/admin/pending-workers`),
+        axios.get(`${API_URL}/admin/pending-contractors`),
         axios.get(`${API_URL}/admin/workers`),
         axios.get(`${API_URL}/admin/contractors`),
         axios.get(`${API_URL}/admin/support-tickets`)
       ]);
       
       setStats(statsRes.data);
-      setPendingWorkers(pendingRes.data);
+      setPendingContractors(pendingRes.data);
       setAllWorkers(workersRes.data);
       setAllContractors(contractorsRes.data);
       setTickets(ticketsRes.data);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to fetch dashboard data');
+    } catch (error: any) {
+      console.error("Admin Fetch Error:", error?.response?.data || error.message);
+      Alert.alert('System Error', 'Could not sync with administration server.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -50,13 +53,22 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const handleApproval = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  const handleApproval = async (id: string, action: 'APPROVED' | 'REJECTED') => {
     try {
-      await axios.put(`${API_URL}/admin/verify-worker/${id}`, { status });
-      Alert.alert('Success', `Worker ${status.toLowerCase()} successfully`);
+      if (action === 'APPROVED') {
+          await axios.post(`${API_URL}/admin/approve-contractor/${id}`);
+      } else {
+          await axios.delete(`${API_URL}/admin/reject-contractor/${id}`);
+      }
+      Alert.alert('Success', `Contractor ${action.toLowerCase()} successfully`);
       fetchData();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update status');
+      Alert.alert('Error', 'Failed to update contractor status');
     }
   };
 
@@ -74,13 +86,13 @@ export default function AdminDashboard() {
         </View>
         <View className="bg-slate-50 p-7 rounded-[40px] mr-4 border border-slate-100 w-44">
             <View className="bg-indigo-100 p-3 rounded-2xl self-start mb-4"><Clock color="#4F46E5" size={20} /></View>
-            <Text className="text-secondary font-inter-black text-3xl mb-1">{stats?.pendingWorkers || 0}</Text>
-            <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Pending</Text>
+            <Text className="text-secondary font-inter-black text-3xl mb-1">{stats?.pendingContractors || 0}</Text>
+            <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Pending Approv</Text>
         </View>
         <View className="bg-slate-50 p-7 rounded-[40px] border border-slate-100 w-44">
             <View className="bg-emerald-100 p-3 rounded-2xl self-start mb-4"><MessageSquare color="#059669" size={20} /></View>
             <Text className="text-secondary font-inter-black text-3xl mb-1">{stats?.openTickets || 0}</Text>
-            <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Tickets</Text>
+            <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Open Tickets</Text>
         </View>
     </ScrollView>
   );
@@ -90,7 +102,7 @@ export default function AdminDashboard() {
       <StatusBar barStyle="dark-content" />
       <View className="px-6 pt-6 flex-row justify-between items-center mb-10">
         <View>
-          <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-[3px]">Mission Control</Text>
+          <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-[3px]">System Admin</Text>
           <Text className="text-3xl font-inter-black text-secondary">Dashboard</Text>
         </View>
         <TouchableOpacity 
@@ -105,13 +117,12 @@ export default function AdminDashboard() {
         <StatsSummary />
       </View>
 
-      {/* Modern Tab Bar */}
       <View className="px-6 mb-10">
           <View className="flex-row bg-slate-50 p-2 rounded-[32px] border border-slate-100">
             {[
-                { id: 'pending', label: 'Verify', icon: Clock },
-                { id: 'users', label: 'Users', icon: Users },
-                { id: 'support', label: 'Help', icon: MessageSquare }
+                { id: 'pending', label: 'Approvals', icon: UserCheck },
+                { id: 'users', label: 'Directory', icon: Users },
+                { id: 'support', label: 'Tickets', icon: MessageSquare }
             ].map(tab => (
                 <TouchableOpacity 
                     key={tab.id}
@@ -129,50 +140,68 @@ export default function AdminDashboard() {
 
       <View className="flex-1 px-6">
         {loading ? (
-          <ActivityIndicator size="large" color="#2563EB" className="mt-20" />
+          <View className="items-center mt-20">
+              <ActivityIndicator size="large" color="#2563EB" />
+              <Text className="text-slate-400 mt-4 font-inter-medium text-center">Loading secure data...</Text>
+          </View>
         ) : (
           <View className="flex-1">
             {activeTab === 'pending' && (
               <FlatList
-                data={pendingWorkers}
+                data={pendingContractors}
                 keyExtractor={item => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#2563EB"]} />}
                 renderItem={({ item }) => (
                   <View className="bg-white p-7 rounded-[40px] mb-6 border border-slate-100 shadow-sm">
                     <View className="flex-row items-center mb-6">
-                      <Image source={{ uri: item.profileImage || `https://ui-avatars.com/api/?name=${item.name}&background=F1F5F9&color=64748B` }} className="w-16 h-16 rounded-[22px] mr-5" />
+                      <View className="bg-slate-50 p-4 rounded-[22px] mr-5">
+                          <ShieldCheck color="#2563EB" size={32} />
+                      </View>
                       <View className="flex-1">
                         <Text className="text-xl font-inter-bold text-secondary">{item.name}</Text>
-                        <Text className="text-primary font-inter-medium text-xs uppercase tracking-tight">{item.categoryEn}</Text>
+                        <Text className="text-primary font-inter-black text-[10px] uppercase tracking-[1px]">{item.companyName || 'Private Entity'}</Text>
                       </View>
                     </View>
                     
                     <View className="bg-slate-50 p-5 rounded-[28px] mb-8">
-                        <View className="flex-row items-center mb-2">
+                        <View className="flex-row items-center mb-3">
                             <MapPin size={14} color="#64748B" />
-                            <Text className="ml-2 text-slate-500 font-inter-medium text-sm">{item.city}, {item.state}</Text>
+                            <Text className="ml-2 text-slate-500 font-inter-medium text-sm">{item.city || 'Location Pending'}</Text>
                         </View>
-                        <Text className="text-slate-400 text-xs font-inter-medium">Experience: {item.experienceYears} Years</Text>
+                        <View className="flex-row items-center">
+                            <FileText size={14} color="#64748B" />
+                            <Text className="ml-2 text-slate-500 font-inter-medium text-xs">ID Proof Uploaded</Text>
+                            {item.idProof && (
+                                <TouchableOpacity onPress={() => Linking.openURL(item.idProof)} className="ml-2 flex-row items-center">
+                                    <Text className="text-primary font-inter-bold text-xs">View Docs</Text>
+                                    <ExternalLink size={10} color="#2563EB" className="ml-1" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
 
                     <View className="flex-row space-x-4">
                       <TouchableOpacity 
-                        onPress={() => handleApproval(item.id, 'REJECTED')}
+                        onPress={() => Alert.alert('Confirm Reject', 'Are you sure you want to remove this contractor registration?', [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Reject', onPress: () => handleApproval(item.id, 'REJECTED'), style: 'destructive' }
+                        ])}
                         className="flex-1 py-5 rounded-[24px] border border-rose-100 bg-rose-50"
                       >
-                        <Text className="text-rose-600 font-inter-black text-center text-xs uppercase tracking-widest">Reject</Text>
+                        <Text className="text-rose-600 font-inter-black text-center text-xs uppercase tracking-widest">Deny</Text>
                       </TouchableOpacity>
                       <TouchableOpacity 
                         onPress={() => handleApproval(item.id, 'APPROVED')}
                         className="flex-2 bg-secondary py-5 rounded-[24px] shadow-lg shadow-secondary/20"
                       >
-                        <Text className="text-white font-inter-black text-center text-xs uppercase tracking-widest px-8">Verify Talent</Text>
+                        <Text className="text-white font-inter-black text-center text-xs uppercase tracking-widest px-8">Approve Access</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 )}
-                ListEmptyComponent={<Text className="text-center text-slate-400 mt-20 font-inter-medium">All clear! No pending verifications.</Text>}
+                ListEmptyComponent={<Text className="text-center text-slate-400 mt-20 font-inter-medium px-8">No contractors currently awaiting approval.</Text>}
               />
             )}
 
@@ -180,7 +209,7 @@ export default function AdminDashboard() {
                 <View className="flex-1">
                     <View className="flex-row mb-8 p-1.5 bg-slate-50 rounded-full border border-slate-100">
                         <TouchableOpacity onPress={() => setUserTab('workers')} className={`flex-1 py-3 rounded-full ${userTab === 'workers' ? 'bg-white shadow-sm' : ''}`}>
-                            <Text className={`text-center font-inter-bold text-xs ${userTab === 'workers' ? 'text-secondary' : 'text-slate-400'}`}>WORKERS</Text>
+                            <Text className={`text-center font-inter-bold text-xs ${userTab === 'workers' ? 'text-secondary' : 'text-slate-400'}`}>ALL WORKERS</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setUserTab('contractors')} className={`flex-1 py-3 rounded-full ${userTab === 'contractors' ? 'bg-white shadow-sm' : ''}`}>
                             <Text className={`text-center font-inter-bold text-xs ${userTab === 'contractors' ? 'text-secondary' : 'text-slate-400'}`}>CONTRACTORS</Text>
@@ -191,15 +220,16 @@ export default function AdminDashboard() {
                         keyExtractor={item => item.id}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingBottom: 100 }}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#2563EB"]} />}
                         renderItem={({item}) => (
-                            <View className="bg-white p-6 rounded-[32px] mb-4 border border-slate-50 flex-row items-center">
+                            <View className="bg-white p-6 rounded-[32px] mb-4 border border-slate-50 flex-row items-center shadow-sm">
                                 <Image source={{ uri: `https://ui-avatars.com/api/?name=${item.name}&background=F1F5F9&color=64748B` }} className="w-14 h-14 rounded-2xl mr-4" />
                                 <View className="flex-1">
                                     <Text className="text-lg font-inter-bold text-secondary">{item.name}</Text>
                                     <View className="flex-row items-center">
                                         <Text className="text-slate-400 text-xs font-inter-medium">{item.phone}</Text>
                                         <Text className="mx-2 text-slate-200">|</Text>
-                                        <Text className="text-primary font-inter-black text-[10px] uppercase">{userTab === 'workers' ? item.categoryEn : (item.companyName || 'PRO')}</Text>
+                                        <Text className="text-primary font-inter-black text-[10px] uppercase truncate">{userTab === 'workers' ? item.categoryEn : (item.companyName || 'PRO')}</Text>
                                     </View>
                                 </View>
                                 <ChevronRight color="#CBD5E1" size={18} />
@@ -215,6 +245,7 @@ export default function AdminDashboard() {
                 keyExtractor={item => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#2563EB"]} />}
                 renderItem={({ item }) => (
                   <View className="bg-white p-7 rounded-[40px] mb-6 border border-slate-100 shadow-sm">
                     <View className="flex-row justify-between items-center mb-6">
@@ -232,7 +263,7 @@ export default function AdminDashboard() {
                     </View>
                   </View>
                 )}
-                ListEmptyComponent={<Text className="text-center text-slate-400 mt-20 font-inter-medium">Support queue is empty.</Text>}
+                ListEmptyComponent={<Text className="text-center text-slate-400 mt-20 font-inter-medium px-8">The support queue is currently empty.</Text>}
               />
             )}
           </View>

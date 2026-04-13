@@ -108,4 +108,33 @@ router.post("/register/contractor", async (req, res) => {
   }
 });
 
+// Update Profile
+router.put("/profile/:role/:id", async (req, res) => {
+  try {
+    const { role, id } = req.params;
+    const updateData = req.body;
+
+    // Filter out sensitive fields
+    const { id: _, phone: __, password: ___, ...safeData } = updateData;
+
+    let user;
+    if (role === "labour") {
+      user = await prisma.worker.update({
+        where: { id },
+        data: safeData
+      });
+    } else {
+      user = await prisma.contractor.update({
+        where: { id },
+        data: safeData
+      });
+    }
+
+    res.json({ message: "Profile updated successfully", user });
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

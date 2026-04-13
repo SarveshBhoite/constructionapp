@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle, Menu } from 'lucide-react-native';
+import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle, Menu, Wallet } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { CATEGORIES } from '../../src/constants/categories';
 import { useAuthStore } from '../../src/store/authStore';
@@ -11,6 +11,7 @@ import * as Linking from 'expo-linking';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_S1OGtZgvN2t1r6';
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ContractorHome() {
   const insets = useSafeAreaInsets();
@@ -174,24 +175,36 @@ export default function ContractorHome() {
                   
                   <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('profile'); }} className="flex-row items-center mb-8">
                       <View className="bg-slate-50 p-4 rounded-2xl mr-4"><User color="#0F172A" size={24} /></View>
-                      <Text className="text-xl font-inter-bold text-slate-700">माझी प्रोफाइल (Profile)</Text>
+                      <View>
+                          <Text className="text-xl font-inter-bold text-slate-700">Profile</Text>
+                          <Text className="text-xs text-slate-400 font-inter-medium">माझी प्रोफाइल</Text>
+                      </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('transactions'); }} className="flex-row items-center mb-8">
                       <View className="bg-slate-50 p-4 rounded-2xl mr-4"><History color="#0F172A" size={24} /></View>
-                      <Text className="text-xl font-inter-bold text-slate-700">व्यवहार (Transactions)</Text>
+                      <View>
+                          <Text className="text-xl font-inter-bold text-slate-700">Transactions</Text>
+                          <Text className="text-xs text-slate-400 font-inter-medium">व्यवहार</Text>
+                      </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => { setShowMenu(false); setActiveModal('support'); }} className="flex-row items-center mb-12">
                       <View className="bg-slate-50 p-4 rounded-2xl mr-4"><MessageCircle color="#0F172A" size={24} /></View>
-                      <Text className="text-xl font-inter-bold text-slate-700">मदत केंद्र (Support)</Text>
+                      <View>
+                          <Text className="text-xl font-inter-bold text-slate-700">Support</Text>
+                          <Text className="text-xs text-slate-400 font-inter-medium">मदत केंद्र</Text>
+                      </View>
                   </TouchableOpacity>
 
                   <View className="h-[1px] bg-slate-100 w-full mb-12" />
 
                   <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} className="flex-row items-center">
                       <View className="bg-rose-50 p-4 rounded-2xl mr-4"><LogOut color="#E11D48" size={24} /></View>
-                      <Text className="text-xl font-inter-bold text-rose-600">Log Out</Text>
+                      <View>
+                          <Text className="text-xl font-inter-bold text-rose-600">Log Out</Text>
+                          <Text className="text-xs text-rose-300 font-inter-medium">बाहेर पडा</Text>
+                      </View>
                   </TouchableOpacity>
               </View>
           </View>
@@ -346,12 +359,53 @@ export default function ContractorHome() {
           </Modal>
       )}
 
+      {/* Transactions Modal */}
+      {activeModal === 'transactions' && (
+          <Modal animationType="slide" transparent={true} visible={true}>
+              <View className="flex-1 bg-black/60 justify-end">
+                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
+                      <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
+                      <Text className="text-3xl font-inter-black mb-10 text-center text-secondary">Transactions</Text>
+                      <FlatList 
+                        data={transactions}
+                        keyExtractor={(item: any) => item.id}
+                        renderItem={({item}) => (
+                           <View className="bg-slate-50 p-6 rounded-[32px] mb-4 flex-row items-center border border-slate-100">
+                                <View className="bg-emerald-100 p-3 rounded-2xl mr-4"><Wallet color="#059669" size={24} /></View>
+                                <View className="flex-1">
+                                    <Text className="text-secondary font-inter-bold text-lg">Subscription Payment</Text>
+                                    <Text className="text-slate-400 font-inter-medium">{new Date(item.createdAt).toLocaleDateString()}</Text>
+                                </View>
+                                <Text className="text-secondary font-inter-black text-xl">₹{item.amount}</Text>
+                            </View>
+                        )}
+                        ListEmptyComponent={
+                            <View className="items-center mt-20">
+                                <Wallet size={48} color="#CBD5E1" />
+                                <Text className="text-slate-400 font-inter-medium text-lg mt-4">No transactions found.</Text>
+                            </View>
+                        }
+                      />
+                      <TouchableOpacity onPress={() => setActiveModal(null)} className="mt-auto bg-slate-900 w-full py-6 rounded-[32px] items-center">
+                          <Text className="text-white font-inter-bold text-xl text-center">Done</Text>
+                      </TouchableOpacity>
+                  </View>
+              </View>
+          </Modal>
+      )}
+
       {/* Support Modal */}
       {activeModal === 'support' && (
           <Modal animationType="slide" transparent={true} visible={true}>
               <View className="flex-1 bg-black/60 justify-end">
                   <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                      <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
+                      <View className="flex-row justify-between items-center mb-8">
+                          <View className="w-10" />
+                          <View className="w-16 h-1 bg-slate-200 rounded-full" />
+                          <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 p-2 rounded-full">
+                              <X color="#94A3B8" size={20} />
+                          </TouchableOpacity>
+                      </View>
                       <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Help Center</Text>
                       <Text className="text-slate-400 text-center mb-10 font-inter-medium text-lg leading-6 px-6">Direct line to our premium support team.</Text>
                       
@@ -381,14 +435,14 @@ export default function ContractorHome() {
       {selectedLabour && (
         <Modal animationType="slide" transparent={true} visible={!!selectedLabour}>
           <View className="flex-1 bg-black/60 justify-end">
-            <View className="bg-white rounded-t-[56px] h-[92%] shadow-2xl overflow-hidden">
+            <View className="bg-white rounded-t-[56px] shadow-2xl overflow-hidden" style={{ height: SCREEN_HEIGHT * 0.9 }}>
               <TouchableOpacity onPress={() => setSelectedLabour(null)} className="absolute top-6 right-6 z-10 bg-slate-100 p-3 rounded-full">
                 <X color="#0F172A" size={24} />
               </TouchableOpacity>
 
               <ScrollView 
                 showsVerticalScrollIndicator={false} 
-                contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
               >
                 <View className="p-8">
                     <View className="items-center mt-8 mb-10">
@@ -404,7 +458,45 @@ export default function ContractorHome() {
                         </View>
                     </View>
 
-                    <View className="w-full bg-slate-50 p-8 rounded-[48px] items-center border border-slate-100 mb-10">
+                    <View className="flex-row justify-between mb-10 space-x-4">
+                        <View className="bg-white p-6 rounded-[36px] flex-1 border border-slate-100 shadow-sm items-center">
+                            <Text className="text-slate-400 font-inter-bold mb-1 uppercase text-[10px] tracking-[2px]">Expertise</Text>
+                            <Text className="text-secondary font-inter-black text-2xl">{selectedLabour.experienceYears}y</Text>
+                        </View>
+                        <View className="bg-white p-6 rounded-[36px] flex-1 border border-slate-100 shadow-sm items-center">
+                            <Text className="text-slate-400 font-inter-bold mb-1 uppercase text-[10px] tracking-[2px]">Rate card</Text>
+                            <Text className="text-primary font-inter-black text-2xl">₹{selectedLabour.wages}</Text>
+                        </View>
+                    </View>
+
+                    {/* New Info Section: Location */}
+                    <View className="bg-slate-50 p-8 rounded-[40px] border border-slate-100 mb-10 flex-row items-center">
+                         <MapPin size={24} color="#2563EB" />
+                         <View className="ml-5">
+                             <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Operating Area</Text>
+                             <Text className="text-secondary font-inter-bold text-xl">{selectedLabour.city}, {selectedLabour.state}</Text>
+                         </View>
+                    </View>
+
+                    {/* About Section */}
+                    <View className="mb-10">
+                        <Text className="text-xl font-inter-black text-secondary mb-4 tracking-tight">Professional Profile</Text>
+                        <View className="bg-slate-50 p-8 rounded-[40px] border border-slate-100">
+                            <Text className="text-slate-500 font-inter-medium text-lg leading-7">
+                                {selectedLabour.about || `${selectedLabour.name} is a high-skill professional within the ${selectedLabour.categoryEn} sector. Verified for quality and currently active in ${selectedLabour.city}.`}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Verification Section */}
+                    <View className="w-full bg-slate-900 p-8 rounded-[48px] items-center shadow-xl mb-10">
+                        <ShieldCheck color="#2563EB" size={32} />
+                        <Text className="text-white font-inter-bold mt-4">Verified Professional</Text>
+                        <Text className="text-white/40 text-xs text-center mt-2 px-6">This worker has completed identity verification and service background check.</Text>
+                    </View>
+
+                    {/* Rating Section */}
+                    <View className="w-full bg-white p-8 rounded-[48px] items-center border border-slate-100 mb-10">
                         <Text className="text-lg font-inter-bold text-secondary mb-6 tracking-tight">Express your feedback</Text>
                         <View className="flex-row items-center space-x-3 mb-8">
                             {[1,2,3,4,5].map(star => (
@@ -421,27 +513,6 @@ export default function ContractorHome() {
                                 <Text className="text-white font-inter-black uppercase tracking-widest text-xs">Verify {userRating} Star Rating</Text>
                             </TouchableOpacity>
                         )}
-                    </View>
-
-                    <View className="flex-row justify-between mb-10 space-x-4">
-                        <View className="bg-white p-6 rounded-[36px] flex-1 border border-slate-100 shadow-sm items-center">
-                            <Text className="text-slate-400 font-inter-bold mb-1 uppercase text-[10px] tracking-[2px]">Expertise</Text>
-                            <Text className="text-secondary font-inter-black text-2xl">{selectedLabour.experienceYears}y</Text>
-                        </View>
-                        <View className="bg-white p-6 rounded-[36px] flex-1 border border-slate-100 shadow-sm items-center">
-                            <Text className="text-slate-400 font-inter-bold mb-1 uppercase text-[10px] tracking-[2px]">Rate card</Text>
-                            <Text className="text-primary font-inter-black text-2xl">₹{selectedLabour.wages}</Text>
-                        </View>
-                    </View>
-
-                    {/* About Section - RESTORED */}
-                    <View className="mb-10">
-                        <Text className="text-xl font-inter-black text-secondary mb-4 tracking-tight">Professional Profile</Text>
-                        <View className="bg-slate-50 p-8 rounded-[40px] border border-slate-100">
-                            <Text className="text-slate-500 font-inter-medium text-lg leading-7">
-                                {selectedLabour.about || `${selectedLabour.name} is a high-skill professional within the ${selectedLabour.categoryEn} sector. Verified for quality and currently active in ${selectedLabour.city}.`}
-                            </Text>
-                        </View>
                     </View>
 
                     {/* Contact Action */}
