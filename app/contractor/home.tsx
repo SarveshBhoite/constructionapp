@@ -483,16 +483,9 @@ export default function ContractorHome() {
                         <Text className="text-xl font-inter-black text-secondary mb-4 tracking-tight">Professional Profile</Text>
                         <View className="bg-slate-50 p-8 rounded-[40px] border border-slate-100">
                             <Text className="text-slate-500 font-inter-medium text-lg leading-7">
-                                {selectedLabour.about || `${selectedLabour.name} is a high-skill professional within the ${selectedLabour.categoryEn} sector. Verified for quality and currently active in ${selectedLabour.city}.`}
+                                {selectedLabour.about || `${selectedLabour.name} is a skilled professional in the ${selectedLabour.categoryEn} sector, currently operating in ${selectedLabour.city}.`}
                             </Text>
                         </View>
-                    </View>
-
-                    {/* Verification Section */}
-                    <View className="w-full bg-slate-900 p-8 rounded-[48px] items-center shadow-xl mb-10">
-                        <ShieldCheck color="#2563EB" size={32} />
-                        <Text className="text-white font-inter-bold mt-4">Verified Professional</Text>
-                        <Text className="text-white/40 text-xs text-center mt-2 px-6">This worker has completed identity verification and service background check.</Text>
                     </View>
 
                     {/* Rating Section */}
