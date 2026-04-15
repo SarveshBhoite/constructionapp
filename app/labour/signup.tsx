@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-import { Camera, Check, ChevronLeft, Zap, Droplet, PaintBucket, Hammer, Layout, Flame, Users, Grid, Box, Scissors, Clipboard, Tool, Briefcase, Ruler } from 'lucide-react-native';
+import { Camera, Check, ChevronLeft, Zap, Droplet, PaintBucket, Hammer, Layout, Flame, Users, Grid, Box, Scissors, Clipboard, Wrench, Briefcase, Ruler } from 'lucide-react-native';
 import { CATEGORIES, STATES } from '../../src/constants/categories';
 import { uploadImage } from '../../src/services/cloudinary';
 import axios from 'axios';
@@ -13,7 +13,7 @@ const ICON_MAP = {
   clipboard: Clipboard,
   users: Users,
   layout: Layout,
-  tool: Tool,
+  tool: Wrench,
   hammer: Hammer,
   zap: Zap,
   'paint-bucket': PaintBucket,

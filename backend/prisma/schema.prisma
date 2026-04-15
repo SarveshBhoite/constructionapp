@@ -39,6 +39,7 @@ model Worker {
 model Contractor {
   id           String   @id @default(uuid())
   name         String
+  ownerName    String?
   companyName  String?
   phone        String   @unique
   city         String?

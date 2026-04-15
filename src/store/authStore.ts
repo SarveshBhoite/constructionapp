@@ -24,6 +24,10 @@ interface UserProfile {
   views?: number;
   rating?: number;
   idProof?: string;
+  gender?: string;
+  gstin?: string;
+  ownerName?: string;
+  categories?: string[];
 }
 
 interface AuthState {

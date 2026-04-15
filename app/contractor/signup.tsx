@@ -12,6 +12,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 export default function ContractorSignup() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [gstin, setGstin] = useState('');
@@ -58,10 +59,11 @@ export default function ContractorSignup() {
         name: companyName,
         phone,
         companyName,
+        ownerName,
         city,
         gstin,
-        gender,
         categories: selectedCategories,
+        gender,
         idProof: docUrl
       };
 
@@ -134,6 +136,16 @@ export default function ContractorSignup() {
                 <Text className={`text-center font-bold ${gender === 'female' ? 'text-blue-900' : 'text-slate-500'}`}>Female</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View className="mb-4">
+          <Text className="text-slate-700 font-bold mb-2 ml-1 text-lg">Owner Name (Optional)</Text>
+          <TextInput
+            placeholder="e.g. Rahul Sharma"
+            value={ownerName}
+            onChangeText={setOwnerName}
+            className="bg-white p-4 rounded-2xl border border-slate-200 text-lg"
+          />
         </View>
 
         <View className="mb-8">

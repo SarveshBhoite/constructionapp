@@ -5,7 +5,7 @@ const prisma = require("../lib/prisma");
 // Get Approved Contractors with Filters
 router.get("/", async (req, res) => {
   try {
-    const { category, city, query, gender, minRating } = req.query;
+    const { category, city, state, query, gender, minRating } = req.query;
 
     const where = {
       isApproved: true,
@@ -17,6 +17,10 @@ router.get("/", async (req, res) => {
 
     if (city) {
       where.city = { contains: city, mode: "insensitive" };
+    }
+
+    if (state) {
+      where.state = { equals: state, mode: "insensitive" };
     }
 
     if (gender && gender !== "all") {

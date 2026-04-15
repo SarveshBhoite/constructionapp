@@ -160,16 +160,36 @@ export default function AdminDashboard() {
                           <ShieldCheck color="#2563EB" size={32} />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-xl font-inter-bold text-secondary">{item.name}</Text>
+                        <Text className="text-xl font-inter-bold text-secondary">{item.ownerName || item.companyName || item.name}</Text>
                         <Text className="text-primary font-inter-black text-[10px] uppercase tracking-[1px]">{item.companyName || 'Private Entity'}</Text>
                       </View>
                     </View>
                     
-                    <View className="bg-slate-50 p-5 rounded-[28px] mb-8">
+                    <View className="bg-slate-50 p-6 rounded-[32px] mb-8">
                         <View className="flex-row items-center mb-3">
                             <MapPin size={14} color="#64748B" />
                             <Text className="ml-2 text-slate-500 font-inter-medium text-sm">{item.city || 'Location Pending'}</Text>
                         </View>
+                        <View className="flex-row items-center mb-3">
+                            <ShieldCheck size={14} color="#64748B" />
+                            <Text className="ml-2 text-slate-500 font-inter-medium text-sm">GSTIN: {item.gstin || 'N/A'}</Text>
+                        </View>
+                        <View className="flex-row items-center mb-4">
+                            <User size={14} color="#64748B" />
+                            <Text className="ml-2 text-slate-500 font-inter-medium text-sm">Gender: {item.gender || 'Unknown'}</Text>
+                        </View>
+                        
+                        <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-2">Categories</Text>
+                        <View className="flex-row flex-wrap">
+                            {item.categories && item.categories.map((catId: string) => (
+                                <View key={catId} className="bg-white px-3 py-1 rounded-full border border-slate-100 mr-2 mb-2">
+                                    <Text className="text-slate-500 font-inter-bold text-[10px]">{catId}</Text>
+                                </View>
+                            ))}
+                        </View>
+
+                        <View className="h-[1px] bg-slate-100 w-full my-4" />
+
                         <View className="flex-row items-center">
                             <FileText size={14} color="#64748B" />
                             <Text className="ml-2 text-slate-500 font-inter-medium text-xs">ID Proof Uploaded</Text>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator, StatusBar, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle, Menu, Wallet } from 'lucide-react-native';
+import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle, Info, ShieldCheck, User, History, MessageCircle, Menu, Wallet, Edit, Save, Briefcase } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
-import { CATEGORIES } from '../../src/constants/categories';
+import { CATEGORIES, STATES } from '../../src/constants/categories';
+import { Picker } from '@react-native-picker/picker';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
 import * as Linking from 'expo-linking';
@@ -32,6 +33,11 @@ export default function ContractorHome() {
   const [supportMsg, setSupportMsg] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [userRating, setUserRating] = useState(0);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedState, setSelectedState] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
 
   const fetchProfile = async () => {
     try {
@@ -48,6 +54,48 @@ export default function ContractorHome() {
       } catch (e) {}
   };
 
+  const submitSupport = async () => {
+    if (!supportMsg.trim()) return;
+    try {
+        setLoading(true);
+        await axios.post(`${API_URL}/support/ticket`, {
+            role: 'contractor',
+            userId: user?.id,
+            userName: user?.name,
+            message: supportMsg
+        });
+        Alert.alert('Success', 'Your message has been sent to the admin.');
+        setSupportMsg('');
+        setActiveModal(null);
+    } catch (e) {
+        Alert.alert('Error', 'Failed to send message.');
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+        setLoading(true);
+        const res = await axios.put(`${API_URL}/auth/profile/contractor/${user?.id}`, editData);
+        setAuth('contractor', res.data.user);
+        setIsEditing(false);
+        Alert.alert('Success', 'Profile updated successfully!');
+    } catch (e) {
+        Alert.alert('Error', 'Failed to update profile.');
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const toggleEditCategory = (id: string) => {
+    const current = editData.categories || [];
+    const updated = current.includes(id) 
+        ? current.filter((c: string) => c !== id) 
+        : [...current, id];
+    setEditData({ ...editData, categories: updated });
+  };
+
   const fetchWorkers = async () => {
     setLoading(true);
     try {
@@ -56,7 +104,9 @@ export default function ContractorHome() {
           category: selectedCategory,
           query: searchQuery,
           gender: selectedGender,
-          minRating: selectedMinRating
+          minRating: selectedMinRating,
+          city: selectedCity,
+          state: selectedState
         }
       });
       setLabours(response.data);
@@ -71,7 +121,7 @@ export default function ContractorHome() {
     fetchWorkers();
     fetchProfile();
     fetchTransactions();
-  }, [selectedCategory, searchQuery, selectedGender, selectedMinRating]);
+  }, [selectedCategory, searchQuery, selectedGender, selectedMinRating, selectedCity, selectedState]);
 
   const handleRating = async (ratingValue: number) => {
       if (!selectedLabour) return;
@@ -150,25 +200,6 @@ export default function ContractorHome() {
     }
   };
 
-  const submitSupport = async () => {
-      if (!supportMsg.trim()) return;
-      try {
-          setLoading(true);
-          await axios.post(`${API_URL}/support/ticket`, {
-              role: 'contractor',
-              userId: user?.id,
-              userName: user?.name,
-              message: supportMsg
-          });
-          Alert.alert('Success', 'Your message has been sent to the admin.');
-          setSupportMsg('');
-          setActiveModal(null);
-      } catch (e) {
-          Alert.alert('Error', 'Failed to send message.');
-      } finally {
-          setLoading(false);
-      }
-  };
   
   const Sidebar = () => (
       <Modal animationType="fade" transparent={true} visible={showMenu}>
@@ -256,60 +287,14 @@ export default function ContractorHome() {
               className="flex-1 ml-3 font-inter-medium text-lg text-secondary"
             />
           </View>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8 -mx-6 px-6">
           <TouchableOpacity 
-            onPress={() => setSelectedCategory(null)}
-            className={`mr-3 px-8 py-4 rounded-[22px] ${!selectedCategory ? 'bg-secondary' : 'bg-slate-50 border border-slate-100'}`}
+            onPress={() => setShowFilterModal(true)}
+            className={`p-6 rounded-[28px] border ${selectedCategory || selectedGender !== 'all' || selectedMinRating > 0 ? 'bg-primary border-primary' : 'bg-white border-slate-100'}`}
           >
-            <Text className={`font-inter-bold ${!selectedCategory ? 'text-white' : 'text-slate-500'}`}>All Talent</Text>
+            <Filter size={22} color={selectedCategory || selectedGender !== 'all' || selectedMinRating > 0 ? 'white' : '#0F172A'} />
           </TouchableOpacity>
-          {CATEGORIES.map(cat => (
-            <TouchableOpacity 
-              key={cat.id}
-              onPress={() => setSelectedCategory(cat.id)}
-              className={`mr-3 px-8 py-4 rounded-[22px] ${selectedCategory === cat.id ? 'bg-secondary' : 'bg-slate-50 border border-slate-100'}`}
-            >
-              <Text className={`font-inter-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-500'}`}>
-                {cat.en}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <View className="flex-row mb-6 mt-[-10px]">
-           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
-                <View className="flex-row items-center mr-4">
-                  <Filter size={16} color="#94A3B8" className="mr-2" />
-                  <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-widest">Gender</Text>
-                </View>
-                {['all', 'male', 'female'].map(g => (
-                    <TouchableOpacity 
-                        key={g} 
-                        onPress={() => setSelectedGender(g)}
-                        className={`mr-2 px-4 py-2 rounded-xl ${selectedGender === g ? 'bg-blue-600' : 'bg-slate-100'}`}
-                    >
-                        <Text className={`font-inter-bold capitalize text-sm ${selectedGender === g ? 'text-white' : 'text-slate-600'}`}>{g}</Text>
-                    </TouchableOpacity>
-                ))}
-
-                <View className="flex-row items-center mx-4">
-                   <Star size={16} color="#94A3B8" className="mr-2" />
-                   <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-widest">Rating</Text>
-                </View>
-                {[0, 3, 4, 5].map(r => (
-                    <TouchableOpacity 
-                        key={r} 
-                        onPress={() => setSelectedMinRating(r)}
-                        className={`mr-2 px-4 py-2 rounded-xl flex-row items-center ${selectedMinRating === r ? 'bg-amber-500' : 'bg-slate-100'}`}
-                    >
-                        <Text className={`font-inter-bold mr-1 text-sm ${selectedMinRating === r ? 'text-white' : 'text-slate-600'}`}>{r === 0 ? 'Any' : `${r}+`}</Text>
-                        {r > 0 && <Star size={12} color={selectedMinRating === r ? 'white' : '#475569'} fill={selectedMinRating === r ? 'white' : 'transparent'} />}
-                    </TouchableOpacity>
-                ))}
-             </ScrollView>
         </View>
+
       </View>
 
       <View className="flex-1 px-6">
@@ -361,38 +346,153 @@ export default function ContractorHome() {
         )}
       </View>
 
-      {/* Profile Modal */}
+      {/* Profile Modal - Expanded & Editable */}
       {activeModal === 'profile' && (
-          <Modal animationType="slide" transparent={true} visible={true}>
+          <Modal animationType="slide" transparent={true} visible={true} onShow={() => setEditData(user)}>
+              <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
               <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[70%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                      <View className="w-16 h-1 bg-slate-200 rounded-full self-center mb-8" />
-                      <Text className="text-3xl font-inter-black mb-10 text-center text-secondary">My Profile</Text>
-                      <View className="items-center mb-12">
-                           <Image 
-                              source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=0F172A&color=fff` }} 
-                              className="w-28 h-28 rounded-[36px] mb-6 shadow-xl border-4 border-slate-50"
-                          />
-                          <Text className="text-2xl font-inter-bold text-secondary mb-1">{user?.name}</Text>
-                          <Text className="text-slate-400 font-inter-medium text-lg">{user?.phone}</Text>
+                  <View className="bg-white rounded-t-[48px] h-[92%] shadow-2xl">
+                      <View className="p-8 pb-4 flex-row justify-between items-center border-b border-slate-50">
+                          <TouchableOpacity onPress={() => { setActiveModal(null); setIsEditing(false); }} className="bg-slate-50 p-3 rounded-full">
+                              <X color="#94A3B8" size={24} />
+                          </TouchableOpacity>
+                          <Text className="text-2xl font-inter-black text-secondary">Profile Identity</Text>
+                          <TouchableOpacity 
+                            onPress={() => isEditing ? handleUpdateProfile() : setIsEditing(true)} 
+                            className={`${isEditing ? 'bg-primary' : 'bg-slate-50'} p-3 rounded-full flex-row items-center px-4`}
+                          >
+                              {isEditing ? <Save color="white" size={20} /> : <Edit color="#2563EB" size={20} />}
+                              <Text className={`ml-2 font-inter-bold ${isEditing ? 'text-white' : 'text-primary'}`}>{isEditing ? 'Save' : 'Edit'}</Text>
+                          </TouchableOpacity>
                       </View>
-                      <View className="space-y-6">
-                          <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                              <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-1">Company Entity</Text>
-                              <Text className="text-secondary font-inter-bold text-lg">{user?.companyName || 'Individual'}</Text>
+
+                      <ScrollView className="p-8" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                          <View className="items-center mb-10">
+                              <Image 
+                                source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=2563EB&color=fff` }} 
+                                className="w-28 h-28 rounded-[40px] shadow-xl mb-4 border-4 border-slate-50" 
+                              />
+                              <Text className="text-2xl font-inter-black text-secondary">{user?.name}</Text>
+                              <Text className="text-slate-400 font-inter-bold">{user?.phone}</Text>
                           </View>
-                          <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                              <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-1">Plan Status</Text>
-                              <Text className={`font-inter-black text-lg ${user?.isSubscribed ? 'text-emerald-600' : 'text-primary'}`}>
-                                  {user?.isSubscribed ? 'Premium Member' : 'Standard Guest'}
-                              </Text>
+
+                          <View className="space-y-6">
+                              {/* Identification Section */}
+                              <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-6">
+                                  <View className="flex-row items-center mb-6">
+                                      <User size={20} color="#2563EB" />
+                                      <Text className="ml-3 text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Business Owner Details</Text>
+                                  </View>
+                                  
+                                  <View className="mb-4">
+                                      <Text className="text-[10px] text-slate-400 mb-1 font-inter-bold uppercase ml-1">Owner Name</Text>
+                                      {isEditing ? (
+                                          <TextInput 
+                                              value={editData?.ownerName}
+                                              onChangeText={(val) => setEditData({...editData, ownerName: val})}
+                                              placeholder="Enter Owner Name"
+                                              className="bg-white p-4 rounded-2xl font-inter-bold border border-slate-100"
+                                          />
+                                      ) : (
+                                          <Text className="text-secondary font-inter-bold text-lg ml-1">{user?.ownerName || 'Not Specified'}</Text>
+                                      )}
+                                  </View>
+
+                                  <View className="mb-4">
+                                      <Text className="text-[10px] text-slate-400 mb-1 font-inter-bold uppercase ml-1">Company Entity</Text>
+                                      {isEditing ? (
+                                          <TextInput 
+                                              value={editData?.companyName}
+                                              onChangeText={(val) => setEditData({...editData, companyName: val})}
+                                              className="bg-white p-4 rounded-2xl font-inter-bold border border-slate-100"
+                                          />
+                                      ) : (
+                                          <Text className="text-secondary font-inter-bold text-lg ml-1">{user?.companyName || 'Private Entity'}</Text>
+                                      )}
+                                  </View>
+
+                                  <View className="mb-4">
+                                      <Text className="text-[10px] text-slate-400 mb-1 font-inter-bold uppercase ml-1">GSTIN Number</Text>
+                                      {isEditing ? (
+                                          <TextInput 
+                                              value={editData?.gstin}
+                                              onChangeText={(val) => setEditData({...editData, gstin: val})}
+                                              autoCapitalize="characters"
+                                              className="bg-white p-4 rounded-2xl font-inter-bold border border-slate-100"
+                                          />
+                                      ) : (
+                                          <Text className="text-secondary font-inter-bold text-lg ml-1">{user?.gstin || 'No GSTIN provided'}</Text>
+                                      )}
+                                  </View>
+                              </View>
+
+                              {/* Operations Section */}
+                              <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-6">
+                                  <View className="flex-row items-center mb-6">
+                                      <Briefcase size={20} color="#2563EB" />
+                                      <Text className="ml-3 text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Hiring Scope</Text>
+                                  </View>
+
+                                  <View className="mb-6">
+                                      <Text className="text-[10px] text-slate-400 mb-3 font-inter-bold uppercase ml-1">Work Categories</Text>
+                                      <View className="flex-row flex-wrap">
+                                          {CATEGORIES.map(cat => {
+                                              const isSelected = isEditing 
+                                                ? (editData?.categories || []).includes(cat.id)
+                                                : (user?.categories || []).includes(cat.id);
+                                              
+                                              if (!isEditing && !isSelected) return null;
+
+                                              return (
+                                                  <TouchableOpacity 
+                                                    key={cat.id} 
+                                                    disabled={!isEditing}
+                                                    onPress={() => toggleEditCategory(cat.id)}
+                                                    className={`mr-2 mb-2 px-4 py-2 rounded-xl border ${isSelected ? 'bg-primary border-primary' : 'bg-white border-slate-100'}`}
+                                                  >
+                                                      <Text className={`font-inter-bold text-xs ${isSelected ? 'text-white' : 'text-slate-500'}`}>{cat.en}</Text>
+                                                  </TouchableOpacity>
+                                              )
+                                          })}
+                                      </View>
+                                  </View>
+
+                                  <View>
+                                      <Text className="text-[10px] text-slate-400 mb-3 font-inter-bold uppercase ml-1">Preferred Labors</Text>
+                                      <View className="flex-row space-x-2">
+                                          {['all', 'male', 'female'].map(g => (
+                                              <TouchableOpacity 
+                                                key={g}
+                                                disabled={!isEditing}
+                                                onPress={() => setEditData({...editData, gender: g})}
+                                                className={`flex-1 py-4 rounded-2xl border items-center ${
+                                                    (isEditing ? editData?.gender : user?.gender) === g 
+                                                    ? 'bg-secondary border-secondary' 
+                                                    : 'bg-white border-slate-100'
+                                                }`}
+                                              >
+                                                  <Text className={`font-inter-bold capitalize text-xs ${ (isEditing ? editData?.gender : user?.gender) === g ? 'text-white' : 'text-slate-500'}`}>{g}</Text>
+                                              </TouchableOpacity>
+                                          ))}
+                                      </View>
+                                  </View>
+                              </View>
+
+                              {/* Pro Badge */}
+                              <View className="bg-emerald-50 p-6 rounded-[32px] border border-emerald-100 items-center">
+                                  <ShieldCheck size={32} color="#059669" />
+                                  <Text className="text-emerald-900 font-inter-black mt-2 text-lg">
+                                      {user?.isSubscribed ? 'Premium Contractor' : 'Standard Member'}
+                                  </Text>
+                                  <Text className="text-emerald-600 font-inter-medium text-xs text-center mt-1">
+                                      {user?.isApproved ? 'Verified Verified Business Account' : 'Awaiting business verification'}
+                                  </Text>
+                              </View>
                           </View>
-                      </View>
-                      <TouchableOpacity onPress={() => setActiveModal(null)} className="mt-auto bg-slate-900 w-full py-6 rounded-[32px] items-center">
-                          <Text className="text-white font-inter-bold text-xl text-center">Done</Text>
-                      </TouchableOpacity>
+                      </ScrollView>
                   </View>
               </View>
+              </KeyboardAvoidingView>
           </Modal>
       )}
 
@@ -431,42 +531,6 @@ export default function ContractorHome() {
           </Modal>
       )}
 
-      {/* Support Modal */}
-      {activeModal === 'support' && (
-          <Modal animationType="slide" transparent={true} visible={true}>
-              <View className="flex-1 bg-black/60 justify-end">
-                  <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>
-                      <View className="flex-row justify-between items-center mb-8">
-                          <Text className="text-slate-400 font-inter-bold text-xs uppercase tracking-widest">Support Center</Text>
-                          <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full flex-row items-center border border-slate-200">
-                              <X color="#64748B" size={16} />
-                              <Text className="ml-2 text-slate-500 font-inter-bold text-xs">Close</Text>
-                          </TouchableOpacity>
-                      </View>
-                      <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Help Center</Text>
-                      <Text className="text-slate-400 text-center mb-10 font-inter-medium text-lg leading-6 px-6">Direct line to our premium support team.</Text>
-                      
-                      <TextInput 
-                          placeholder="Describe your inquiry..."
-                          placeholderTextColor="#94A3B8"
-                          multiline
-                          numberOfLines={6}
-                          value={supportMsg}
-                          onChangeText={setSupportMsg}
-                          className="bg-slate-50 p-8 rounded-[36px] font-inter-medium text-lg text-secondary h-40 mb-10 border border-slate-100"
-                      />
-
-                      <TouchableOpacity 
-                          onPress={submitSupport}
-                          disabled={loading}
-                          className="bg-primary w-full py-6 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-primary/20"
-                      >
-                          {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-inter-bold text-xl">Send Inquiry</Text>}
-                      </TouchableOpacity>
-                  </View>
-              </View>
-          </Modal>
-      )}
 
       {/* Worker Detail Modal */}
       {selectedLabour && (
@@ -594,6 +658,134 @@ export default function ContractorHome() {
           </View>
         </Modal>
       )}
+      {/* Filter Modal */}
+      <Modal animationType="slide" transparent={true} visible={showFilterModal}>
+          <View className="flex-1 bg-black/60 justify-end">
+              <View className="bg-white rounded-t-[48px] p-8 h-[85%]" style={{ paddingBottom: insets.bottom + 20 }}>
+                  <View className="flex-row justify-between items-center mb-10">
+                      <TouchableOpacity onPress={() => setShowFilterModal(false)} className="bg-slate-100 p-3 rounded-full">
+                          <X color="#0F172A" size={24} />
+                      </TouchableOpacity>
+                      <Text className="text-2xl font-inter-black text-secondary">Discovery Filters</Text>
+                        <TouchableOpacity 
+                        onPress={() => {
+                            setSelectedCategory(null);
+                            setSelectedGender('all');
+                            setSelectedMinRating(0);
+                            setSelectedCity('');
+                            setSelectedState('');
+                        }}
+                      >
+                          <Text className="text-primary font-inter-bold">Clear All</Text>
+                      </TouchableOpacity>
+                  </View>
+
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Location Filters</Text>
+                      <View className="mb-10">
+                          <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4">
+                              <MapPin size={20} color="#94A3B8" />
+                              <TextInput 
+                                placeholder="Search by City (e.g. Pune)"
+                                value={selectedCity}
+                                onChangeText={setSelectedCity}
+                                className="flex-1 ml-3 font-inter-bold text-secondary"
+                              />
+                          </View>
+                          
+                          <View className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                              <Picker
+                                selectedValue={selectedState}
+                                onValueChange={(itemValue) => setSelectedState(itemValue)}
+                                style={{ height: 60, width: '100%' }}
+                              >
+                                <Picker.Item label="Select State (Any)" value="" />
+                                {STATES.map(state => (
+                                    <Picker.Item key={state} label={state} value={state} />
+                                ))}
+                              </Picker>
+                          </View>
+                      </View>
+
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Expertise Category</Text>
+                      <View className="flex-row flex-wrap mb-10">
+                          <TouchableOpacity 
+                            onPress={() => setSelectedCategory(null)}
+                            className={`mr-3 mb-3 px-6 py-4 rounded-2xl border ${!selectedCategory ? 'bg-secondary border-secondary' : 'bg-white border-slate-100'}`}
+                          >
+                              <Text className={`font-inter-bold ${!selectedCategory ? 'text-white' : 'text-slate-500'}`}>All Talent</Text>
+                          </TouchableOpacity>
+                          {CATEGORIES.map(cat => (
+                              <TouchableOpacity 
+                                key={cat.id}
+                                onPress={() => setSelectedCategory(cat.id)}
+                                className={`mr-3 mb-3 px-6 py-4 rounded-2xl border ${selectedCategory === cat.id ? 'bg-secondary border-secondary' : 'bg-white border-slate-100'}`}
+                              >
+                                  <Text className={`font-inter-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-500'}`}>{cat.en}</Text>
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Gender Identity</Text>
+                      <View className="flex-row space-x-3 mb-10">
+                          {['all', 'male', 'female'].map(g => (
+                              <TouchableOpacity 
+                                  key={g} 
+                                  onPress={() => setSelectedGender(g)}
+                                  className={`flex-1 py-5 rounded-2xl border items-center ${selectedGender === g ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-100'}`}
+                              >
+                                  <Text className={`font-inter-bold capitalize ${selectedGender === g ? 'text-white' : 'text-slate-500'}`}>{g}</Text>
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Minimum Star Rating</Text>
+                      <View className="flex-row space-x-3 mb-10">
+                          {[0, 3, 4, 5].map(r => (
+                              <TouchableOpacity 
+                                  key={r} 
+                                  onPress={() => setSelectedMinRating(r)}
+                                  className={`flex-1 py-5 rounded-2xl border items-center flex-row justify-center ${selectedMinRating === r ? 'bg-amber-500 border-amber-500' : 'bg-white border-slate-100'}`}
+                              >
+                                  <Text className={`font-inter-bold mr-1 ${selectedMinRating === r ? 'text-white' : 'text-slate-500'}`}>{r === 0 ? 'Any' : `${r}+`}</Text>
+                                  {r > 0 && <Star size={14} color={selectedMinRating === r ? 'white' : '#94A3B8'} fill={selectedMinRating === r ? 'white' : 'transparent'} />}
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+                  </ScrollView>
+
+                  <TouchableOpacity 
+                    onPress={() => setShowFilterModal(false)}
+                    className="bg-secondary w-full py-6 rounded-[32px] items-center shadow-xl shadow-secondary/20"
+                  >
+                      <Text className="text-white font-inter-black text-lg uppercase tracking-widest">Apply Filters</Text>
+                  </TouchableOpacity>
+              </View>
+          </View>
+        </Modal>
+
+        {/* Support Modal */}
+        {activeModal === 'support' && (
+            <Modal animationType="slide" transparent={true} visible={true}>
+                <View className="flex-1 bg-black/60 justify-end">
+                    <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>
+                          <View className="flex-row justify-between items-center mb-8">
+                             <Text className="text-slate-400 font-inter-bold text-xs uppercase tracking-widest">Support Center</Text>
+                             <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full flex-row items-center border border-slate-200">
+                                 <X color="#64748B" size={16} />
+                                 <Text className="ml-2 text-slate-500 font-inter-bold text-xs">Close</Text>
+                             </TouchableOpacity>
+                         </View>
+                        <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Concierge Help</Text>
+                        <Text className="text-slate-400 text-center mb-10 font-inter-medium text-lg px-6 leading-6">Direct line to our premium support team. Describe your issue below.</Text>
+                        <TextInput placeholder="How can we assist you today?" placeholderTextColor="#94A3B8" multiline numberOfLines={4} value={supportMsg} onChangeText={setSupportMsg} className="bg-slate-50 p-8 rounded-[36px] font-inter-medium text-lg text-secondary h-40 mb-10 border border-slate-100" />
+                        <TouchableOpacity onPress={submitSupport} disabled={loading} className="bg-primary w-full py-6 rounded-[32px] flex-row items-center justify-center shadow-2xl shadow-primary/20">
+                            {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-inter-bold text-xl">Inquiry Support</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        )}
     </View>
   );
 }

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, FlatList, Image, TextInput, Alert, Modal, ActivityIndicator, StatusBar, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle2, ShieldCheck, User, History, MessageCircle, Menu, Wallet, Eye, Edit, Save, Briefcase, CardIcon } from 'lucide-react-native';
+import { Search, Filter, Phone, MapPin, Star, CreditCard, ChevronRight, X, LogOut, CheckCircle2, ShieldCheck, User, History, MessageCircle, Menu, Wallet, Eye, Edit, Save, Briefcase, FileText } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { CATEGORIES, STATES } from '../../src/constants/categories';
+import { Picker } from '@react-native-picker/picker';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
 import * as Linking from 'expo-linking';
@@ -34,10 +35,33 @@ export default function LabourHome() {
   const [supportMsg, setSupportMsg] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [userRating, setUserRating] = useState(0);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedState, setSelectedState] = useState('');
 
   // Profile Edit State
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
+
+  const submitSupport = async () => {
+      if (!supportMsg.trim()) return;
+      try {
+          setLoading(true);
+          await axios.post(`${API_URL}/support/ticket`, {
+              role: 'worker',
+              userId: user?.id,
+              userName: user?.name,
+              message: supportMsg
+          });
+          Alert.alert('Success', 'Your message has been sent to the admin.');
+          setSupportMsg('');
+          setActiveModal(null);
+      } catch (e) {
+          Alert.alert('Error', 'Failed to send message.');
+      } finally {
+          setLoading(false);
+      }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -64,7 +88,9 @@ export default function LabourHome() {
           category: selectedCategory,
           query: searchQuery,
           gender: selectedGender,
-          minRating: selectedMinRating
+          minRating: selectedMinRating,
+          city: selectedCity,
+          state: selectedState
         }
       });
       setContractors(response.data);
@@ -79,7 +105,7 @@ export default function LabourHome() {
     fetchContractors();
     fetchProfile();
     fetchTransactions();
-  }, [selectedCategory, searchQuery, selectedGender, selectedMinRating]);
+  }, [selectedCategory, searchQuery, selectedGender, selectedMinRating, selectedCity, selectedState]);
 
   const handleUpdateProfile = async () => {
       try {
@@ -180,26 +206,6 @@ export default function LabourHome() {
     );
   };
 
-  const submitSupport = async () => {
-      if (!supportMsg.trim()) return;
-      try {
-          setLoading(true);
-          await axios.post(`${API_URL}/support/ticket`, {
-              role: 'worker',
-              userId: user?.id,
-              userName: user?.name,
-              message: supportMsg
-          });
-          Alert.alert('Success', 'Your message has been sent to the admin.');
-          setSupportMsg('');
-          setActiveModal(null);
-      } catch (e) {
-          Alert.alert('Error', 'Failed to send message.');
-      } finally {
-          setLoading(false);
-      }
-  };
-  
   const Sidebar = () => (
       <Modal animationType="fade" transparent={true} visible={showMenu}>
           <View className="flex-1 flex-row">
@@ -286,59 +292,12 @@ export default function LabourHome() {
               className="flex-1 ml-3 font-inter-medium text-base text-secondary"
             />
           </View>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4 -mx-6 px-6">
           <TouchableOpacity 
-            onPress={() => setSelectedCategory(null)}
-            className={`mr-3 px-6 py-3 rounded-[20px] ${!selectedCategory ? 'bg-secondary' : 'bg-slate-50 border border-slate-100'}`}
+            onPress={() => setShowFilterModal(true)}
+            className={`p-5 rounded-[24px] border ${selectedCategory || selectedGender !== 'all' || selectedMinRating > 0 ? 'bg-primary border-primary' : 'bg-white border-slate-100'}`}
           >
-            <Text className={`font-inter-bold ${!selectedCategory ? 'text-white' : 'text-slate-500'}`}>All Jobs</Text>
+            <Filter size={22} color={selectedCategory || selectedGender !== 'all' || selectedMinRating > 0 ? 'white' : '#0F172A'} />
           </TouchableOpacity>
-          {CATEGORIES.map(cat => (
-            <TouchableOpacity 
-              key={cat.id}
-              onPress={() => setSelectedCategory(cat.id)}
-              className={`mr-3 px-6 py-3 rounded-[20px] ${selectedCategory === cat.id ? 'bg-secondary' : 'bg-slate-50 border border-slate-100'}`}
-            >
-              <Text className={`font-inter-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-500'}`}>
-                {cat.en}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <View className="flex-row mb-6 mt-[-10]">
-           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
-                <View className="flex-row items-center mr-3">
-                  <Filter size={16} color="#94A3B8" className="mr-2" />
-                  <Text className="text-[10px] font-inter-bold text-slate-400 uppercase tracking-widest">Gender</Text>
-                </View>
-                {['all', 'male', 'female'].map(g => (
-                    <TouchableOpacity 
-                        key={g} 
-                        onPress={() => setSelectedGender(g)}
-                        className={`mr-2 px-4 py-2 rounded-xl ${selectedGender === g ? 'bg-blue-600' : 'bg-slate-100'}`}
-                    >
-                        <Text className={`font-inter-bold capitalize text-xs ${selectedGender === g ? 'text-white' : 'text-slate-600'}`}>{g}</Text>
-                    </TouchableOpacity>
-                ))}
-
-                <View className="flex-row items-center mx-3">
-                   <Star size={16} color="#94A3B8" className="mr-2" />
-                   <Text className="text-[10px] font-inter-bold text-slate-400 uppercase tracking-widest">Rating</Text>
-                </View>
-                {[0, 3, 4, 5].map(r => (
-                    <TouchableOpacity 
-                        key={r} 
-                        onPress={() => setSelectedMinRating(r)}
-                        className={`mr-2 px-4 py-2 rounded-xl flex-row items-center ${selectedMinRating === r ? 'bg-amber-500' : 'bg-slate-100'}`}
-                    >
-                        <Text className={`font-inter-bold mr-1 text-xs ${selectedMinRating === r ? 'text-white' : 'text-slate-600'}`}>{r === 0 ? 'Any' : `${r}+`}</Text>
-                        {r > 0 && <Star size={12} color={selectedMinRating === r ? 'white' : '#475569'} fill={selectedMinRating === r ? 'white' : 'transparent'} />}
-                    </TouchableOpacity>
-                ))}
-             </ScrollView>
         </View>
       </View>
 
@@ -409,7 +368,7 @@ export default function LabourHome() {
                             className="w-40 h-40 rounded-[44px] mb-6 shadow-2xl border-4 border-slate-50" 
                         />
                         <Text className="text-3xl font-inter-black text-secondary tracking-tight mb-2 text-center">{selectedContractor.companyName || selectedContractor.name}</Text>
-                        <Text className="text-slate-500 font-inter-bold text-lg mb-4 text-center tracking-tighter">Owner: {selectedContractor.name}</Text>
+                        <Text className="text-slate-500 font-inter-bold text-lg mb-4 text-center tracking-tighter">Owner: {selectedContractor.ownerName || selectedContractor.companyName || selectedContractor.name}</Text>
                         <View className="bg-amber-100 px-6 py-2 rounded-full flex-row items-center">
                             <Star size={18} color="#FBBF24" fill="#FBBF24" />
                             <Text className="ml-2 text-amber-900 font-inter-black text-lg">{selectedContractor.rating ? selectedContractor.rating.toFixed(1) : '0.0'}</Text>
@@ -577,8 +536,37 @@ export default function LabourHome() {
                                     </View>
                                 </View>
 
+                                <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-4">
+                                    <View className="flex-row items-center mb-6">
+                                        <User size={20} color="#2563EB" />
+                                        <Text className="ml-3 text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest">Personal Identity</Text>
+                                    </View>
+                                    <View className="mb-4">
+                                        <Text className="text-[10px] text-slate-400 mb-3 font-inter-bold uppercase ml-1">Gender Identity</Text>
+                                        <View className="flex-row space-x-2">
+                                            {['male', 'female'].map(g => (
+                                                <TouchableOpacity 
+                                                    key={g}
+                                                    disabled={!isEditing}
+                                                    onPress={() => setEditData({...editData, gender: g})}
+                                                    className={`flex-1 py-4 rounded-2xl border items-center ${
+                                                        (isEditing ? editData?.gender : dbUser?.gender) === g 
+                                                        ? 'bg-secondary border-secondary' 
+                                                        : 'bg-white border-slate-100'
+                                                    }`}
+                                                >
+                                                    <Text className={`font-inter-bold capitalize text-xs ${ (isEditing ? editData?.gender : dbUser?.gender) === g ? 'text-white' : 'text-slate-500'}`}>{g}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                </View>
+
                                 <View className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 mb-20">
-                                    <Text className="text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest mb-4 leading-4">Professional Bio (About me)</Text>
+                                    <View className="flex-row items-center mb-4">
+                                        <FileText size={20} color="#2563EB" />
+                                        <Text className="ml-3 text-slate-400 font-inter-bold text-[10px] uppercase tracking-widest text-xs">Professional Bio (About me)</Text>
+                                    </View>
                                     {isEditing ? (
                                         <TextInput 
                                             multiline
@@ -639,8 +627,114 @@ export default function LabourHome() {
             </Modal>
         )}
 
-      {/* Support Modal */}
-      {activeModal === 'support' && (
+        {/* Filter Modal */}
+        <Modal animationType="slide" transparent={true} visible={showFilterModal}>
+          <View className="flex-1 bg-black/60 justify-end">
+              <View className="bg-white rounded-t-[48px] p-8 h-[85%]" style={{ paddingBottom: insets.bottom + 20 }}>
+                  <View className="flex-row justify-between items-center mb-10">
+                      <TouchableOpacity onPress={() => setShowFilterModal(false)} className="bg-slate-100 p-3 rounded-full">
+                          <X color="#0F172A" size={24} />
+                      </TouchableOpacity>
+                      <Text className="text-2xl font-inter-black text-secondary">Job Filters</Text>
+                      <TouchableOpacity 
+                        onPress={() => {
+                            setSelectedCategory(null);
+                            setSelectedGender('all');
+                            setSelectedMinRating(0);
+                            setSelectedCity('');
+                            setSelectedState('');
+                        }}
+                      >
+                          <Text className="text-primary font-inter-bold">Clear All</Text>
+                      </TouchableOpacity>
+                  </View>
+
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Location Filters</Text>
+                      <View className="mb-10">
+                          <View className="flex-row items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4">
+                              <MapPin size={20} color="#94A3B8" />
+                              <TextInput 
+                                placeholder="Search by City (e.g. Pune)"
+                                value={selectedCity}
+                                onChangeText={setSelectedCity}
+                                className="flex-1 ml-3 font-inter-bold text-secondary"
+                              />
+                          </View>
+                          
+                          <View className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                              <Picker
+                                selectedValue={selectedState}
+                                onValueChange={(itemValue) => setSelectedState(itemValue)}
+                                style={{ height: 60, width: '100%' }}
+                              >
+                                <Picker.Item label="Select State (Any)" value="" />
+                                {STATES.map(state => (
+                                    <Picker.Item key={state} label={state} value={state} />
+                                ))}
+                              </Picker>
+                          </View>
+                      </View>
+
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Work Category</Text>
+                      <View className="flex-row flex-wrap mb-10">
+                          <TouchableOpacity 
+                            onPress={() => setSelectedCategory(null)}
+                            className={`mr-3 mb-3 px-6 py-4 rounded-2xl border ${!selectedCategory ? 'bg-secondary border-secondary' : 'bg-white border-slate-100'}`}
+                          >
+                              <Text className={`font-inter-bold ${!selectedCategory ? 'text-white' : 'text-slate-500'}`}>All Jobs</Text>
+                          </TouchableOpacity>
+                          {CATEGORIES.map(cat => (
+                              <TouchableOpacity 
+                                key={cat.id}
+                                onPress={() => setSelectedCategory(cat.id)}
+                                className={`mr-3 mb-3 px-6 py-4 rounded-2xl border ${selectedCategory === cat.id ? 'bg-secondary border-secondary' : 'bg-white border-slate-100'}`}
+                              >
+                                  <Text className={`font-inter-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-500'}`}>{cat.en}</Text>
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Contractor Gender</Text>
+                      <View className="flex-row space-x-3 mb-10">
+                          {['all', 'male', 'female'].map(g => (
+                              <TouchableOpacity 
+                                  key={g} 
+                                  onPress={() => setSelectedGender(g)}
+                                  className={`flex-1 py-5 rounded-2xl border items-center ${selectedGender === g ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-100'}`}
+                              >
+                                  <Text className={`font-inter-bold capitalize ${selectedGender === g ? 'text-white' : 'text-slate-500'}`}>{g}</Text>
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+
+                      <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-[2px] mb-6">Minimum Star Rating</Text>
+                      <View className="flex-row space-x-3 mb-10">
+                          {[0, 3, 4, 5].map(r => (
+                              <TouchableOpacity 
+                                  key={r} 
+                                  onPress={() => setSelectedMinRating(r)}
+                                  className={`flex-1 py-5 rounded-2xl border items-center flex-row justify-center ${selectedMinRating === r ? 'bg-amber-500 border-amber-500' : 'bg-white border-slate-100'}`}
+                              >
+                                  <Text className={`font-inter-bold mr-1 ${selectedMinRating === r ? 'text-white' : 'text-slate-500'}`}>{r === 0 ? 'Any' : `${r}+`}</Text>
+                                  {r > 0 && <Star size={14} color={selectedMinRating === r ? 'white' : '#94A3B8'} fill={selectedMinRating === r ? 'white' : 'transparent'} />}
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+                  </ScrollView>
+
+                  <TouchableOpacity 
+                    onPress={() => setShowFilterModal(false)}
+                    className="bg-secondary w-full py-6 rounded-[32px] items-center shadow-xl shadow-secondary/20"
+                  >
+                      <Text className="text-white font-inter-black text-lg uppercase tracking-widest">Apply Filters</Text>
+                  </TouchableOpacity>
+              </View>
+          </View>
+        </Modal>
+
+        {/* Support Modal */}
+        {activeModal === 'support' && (
             <Modal animationType="slide" transparent={true} visible={true}>
                 <View className="flex-1 bg-black/60 justify-end">
                     <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>

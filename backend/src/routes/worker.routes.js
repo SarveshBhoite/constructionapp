@@ -54,7 +54,7 @@ router.post("/register", async (req, res) => {
 // Get Workers with Filters
 router.get("/", async (req, res) => {
   try {
-    const { category, city, query, gender, minRating } = req.query;
+    const { category, city, state, query, gender, minRating } = req.query;
 
     const where = {
       isAvailable: true,
@@ -66,6 +66,10 @@ router.get("/", async (req, res) => {
 
     if (city) {
       where.city = { contains: city, mode: "insensitive" };
+    }
+    
+    if (state) {
+      where.state = { equals: state, mode: "insensitive" };
     }
 
     if (gender && gender !== "all") {
