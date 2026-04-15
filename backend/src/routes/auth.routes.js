@@ -80,7 +80,7 @@ router.post("/register/contractor", async (req, res) => {
   console.log("--- CONTRACTOR SIGNUP ATTEMPT ---");
   console.log("Payload:", req.body);
   try {
-    const { name, phone, companyName, city, idProof } = req.body;
+    const { name, phone, companyName, city, gstin, categories, gender, idProof } = req.body;
     
     // Check if exists
     const existing = await prisma.contractor.findUnique({ where: { phone } });
@@ -94,6 +94,10 @@ router.post("/register/contractor", async (req, res) => {
         name,
         phone,
         companyName,
+        city: city || null,
+        gstin: gstin || null,
+        categories: Array.isArray(categories) ? categories : [],
+        gender: gender || null,
         idProof,
         isApproved: false,
         isSubscribed: false

@@ -7,12 +7,12 @@ router.post("/register", async (req, res) => {
   try {
     const { 
       name, phone, email, address, city, state, 
-      category, categoryEn, categoryMr, 
+      category, categoryEn, categoryMr, gender,
       experienceYears, wages, wageType, profileImage, about 
     } = req.body;
 
     // Validation
-    if (!name || !phone || !city || !state || !category || !wages) {
+    if (!name || !phone || !city || !state || !category || !wages || !gender) {
       return res.status(400).json({ error: "Mandatory fields are missing" });
     }
 
@@ -31,6 +31,7 @@ router.post("/register", async (req, res) => {
         category,
         categoryEn,
         categoryMr,
+        gender,
         experienceYears: parseInt(experienceYears) || 0,
         wages: parseFloat(wages),
         wageType,
@@ -53,7 +54,7 @@ router.post("/register", async (req, res) => {
 // Get Workers with Filters
 router.get("/", async (req, res) => {
   try {
-    const { category, city, query } = req.query;
+    const { category, city, query, gender, minRating } = req.query;
 
     const where = {
       isAvailable: true,
@@ -65,6 +66,14 @@ router.get("/", async (req, res) => {
 
     if (city) {
       where.city = { contains: city, mode: "insensitive" };
+    }
+
+    if (gender && gender !== "all") {
+      where.gender = { equals: gender, mode: "insensitive" };
+    }
+
+    if (minRating && minRating !== "0") {
+      where.rating = { gte: parseFloat(minRating) };
     }
 
     if (query) {

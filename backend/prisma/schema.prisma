@@ -21,12 +21,13 @@ model Worker {
   category        String   // Category ID (e.g., 'mason')
   categoryEn      String   // English Name
   categoryMr      String   // Marathi/Hindi Name
+  gender          String?  // 'male' or 'female'
   experienceYears Int
   about           String?
   wages           Float
   wageType        String   // 'HOUR' or 'DAY'
   profileImage    String?
-  rating          Float    @default(4.5)
+  rating          Float    @default(0)
   isAvailable     Boolean  @default(true)
   isSubscribed    Boolean  @default(false)
   subExpiresAt    DateTime?
@@ -40,10 +41,16 @@ model Contractor {
   name         String
   companyName  String?
   phone        String   @unique
+  city         String?
+  gstin        String?  // GSTIN registration number
+  categories   String[] // Array of selected category IDs
+  gender       String?  // 'male' or 'female'
+  rating       Float    @default(0)
   isSubscribed Boolean  @default(false)
   isApproved   Boolean  @default(false)
   idProof      String?  // Document URL for admin review
   subExpiresAt DateTime?
+  views        Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -65,6 +72,16 @@ model Review {
   workerId     String
   contractorId String
   contractorName String
+  rating       Int      // 1-5
+  comment      String?
+  createdAt    DateTime @default(now())
+}
+
+model ContractorReview {
+  id           String   @id @default(uuid())
+  contractorId String
+  workerId     String
+  workerName   String
   rating       Int      // 1-5
   comment      String?
   createdAt    DateTime @default(now())

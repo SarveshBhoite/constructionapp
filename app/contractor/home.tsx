@@ -21,6 +21,8 @@ export default function ContractorHome() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedGender, setSelectedGender] = useState<string>('all');
+  const [selectedMinRating, setSelectedMinRating] = useState<number>(0);
   const [selectedLabour, setSelectedLabour] = useState<any>(null);
   const [labours, setLabours] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,9 @@ export default function ContractorHome() {
       const response = await axios.get(`${API_URL}/workers`, {
         params: {
           category: selectedCategory,
-          query: searchQuery
+          query: searchQuery,
+          gender: selectedGender,
+          minRating: selectedMinRating
         }
       });
       setLabours(response.data);
@@ -67,7 +71,7 @@ export default function ContractorHome() {
     fetchWorkers();
     fetchProfile();
     fetchTransactions();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, selectedGender, selectedMinRating]);
 
   const handleRating = async (ratingValue: number) => {
       if (!selectedLabour) return;
@@ -273,6 +277,39 @@ export default function ContractorHome() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <View className="flex-row mb-6 mt-[-10px]">
+           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
+                <View className="flex-row items-center mr-4">
+                  <Filter size={16} color="#94A3B8" className="mr-2" />
+                  <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-widest">Gender</Text>
+                </View>
+                {['all', 'male', 'female'].map(g => (
+                    <TouchableOpacity 
+                        key={g} 
+                        onPress={() => setSelectedGender(g)}
+                        className={`mr-2 px-4 py-2 rounded-xl ${selectedGender === g ? 'bg-blue-600' : 'bg-slate-100'}`}
+                    >
+                        <Text className={`font-inter-bold capitalize text-sm ${selectedGender === g ? 'text-white' : 'text-slate-600'}`}>{g}</Text>
+                    </TouchableOpacity>
+                ))}
+
+                <View className="flex-row items-center mx-4">
+                   <Star size={16} color="#94A3B8" className="mr-2" />
+                   <Text className="text-xs font-inter-bold text-slate-400 uppercase tracking-widest">Rating</Text>
+                </View>
+                {[0, 3, 4, 5].map(r => (
+                    <TouchableOpacity 
+                        key={r} 
+                        onPress={() => setSelectedMinRating(r)}
+                        className={`mr-2 px-4 py-2 rounded-xl flex-row items-center ${selectedMinRating === r ? 'bg-amber-500' : 'bg-slate-100'}`}
+                    >
+                        <Text className={`font-inter-bold mr-1 text-sm ${selectedMinRating === r ? 'text-white' : 'text-slate-600'}`}>{r === 0 ? 'Any' : `${r}+`}</Text>
+                        {r > 0 && <Star size={12} color={selectedMinRating === r ? 'white' : '#475569'} fill={selectedMinRating === r ? 'white' : 'transparent'} />}
+                    </TouchableOpacity>
+                ))}
+             </ScrollView>
+        </View>
       </View>
 
       <View className="flex-1 px-6">
@@ -299,7 +336,7 @@ export default function ContractorHome() {
                         <Text className="text-xl font-inter-bold text-secondary">{item.name}</Text>
                         <View className="flex-row items-center bg-amber-50 px-2 py-1 rounded-xl">
                             <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                            <Text className="ml-1 text-amber-700 font-inter-black text-[10px]">{item.rating?.toFixed(1) || 4.5}</Text>
+                            <Text className="ml-1 text-amber-700 font-inter-black text-[10px]">{item.rating ? item.rating.toFixed(1) : '0.0'}</Text>
                         </View>
                     </View>
                     <Text className="text-primary font-inter-bold mb-3 text-xs uppercase tracking-tight">
@@ -400,10 +437,10 @@ export default function ContractorHome() {
               <View className="flex-1 bg-black/60 justify-end">
                   <View className="bg-white rounded-t-[48px] p-8 h-[65%]" style={{ paddingBottom: insets.bottom + 20 }}>
                       <View className="flex-row justify-between items-center mb-8">
-                          <View className="w-10" />
-                          <View className="w-16 h-1 bg-slate-200 rounded-full" />
-                          <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 p-2 rounded-full">
-                              <X color="#94A3B8" size={20} />
+                          <Text className="text-slate-400 font-inter-bold text-xs uppercase tracking-widest">Support Center</Text>
+                          <TouchableOpacity onPress={() => setActiveModal(null)} className="bg-slate-100 px-4 py-2 rounded-full flex-row items-center border border-slate-200">
+                              <X color="#64748B" size={16} />
+                              <Text className="ml-2 text-slate-500 font-inter-bold text-xs">Close</Text>
                           </TouchableOpacity>
                       </View>
                       <Text className="text-3xl font-inter-black mb-4 text-center text-secondary">Help Center</Text>
@@ -441,8 +478,9 @@ export default function ContractorHome() {
               </TouchableOpacity>
 
               <ScrollView 
-                showsVerticalScrollIndicator={false} 
-                contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+                showsVerticalScrollIndicator={true} 
+                className="flex-1"
+                contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
               >
                 <View className="p-8">
                     <View className="items-center mt-8 mb-10">
@@ -454,7 +492,7 @@ export default function ContractorHome() {
                         <Text className="text-primary font-inter-black text-xl mb-4 text-center uppercase tracking-tighter">{selectedLabour.categoryEn}</Text>
                         <View className="bg-amber-100 px-6 py-2 rounded-full flex-row items-center">
                             <Star size={18} color="#FBBF24" fill="#FBBF24" />
-                            <Text className="ml-2 text-amber-900 font-inter-black text-lg">{selectedLabour.rating?.toFixed(1) || 4.5}</Text>
+                            <Text className="ml-2 text-amber-900 font-inter-black text-lg">{selectedLabour.rating ? selectedLabour.rating.toFixed(1) : '0.0'}</Text>
                         </View>
                     </View>
 

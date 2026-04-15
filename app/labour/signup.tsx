@@ -29,6 +29,7 @@ export default function LabourSignup() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<string | null>(null);
   const [city, setCity] = useState('');
   const [state, setState] = useState(STATES[0]);
   const [address, setAddress] = useState('');
@@ -56,8 +57,8 @@ export default function LabourSignup() {
 
   const handleSignup = async () => {
     // Validations
-    if (!name || !phone || !city || !selectedCategory || !image || !wages) {
-      Alert.alert('Error', 'Please fill all mandatory details (कृपया सर्व माहिती भरा)');
+    if (!name || !phone || !city || !selectedCategory || !image || !wages || !gender) {
+      Alert.alert('Error', 'Please fill all mandatory details including gender (कृपया सर्व माहिती भरा)');
       return;
     }
 
@@ -82,6 +83,7 @@ export default function LabourSignup() {
         category: selectedCategory,
         categoryEn: categoryObj.en,
         categoryMr: categoryObj.mr,
+        gender,
         experienceYears: parseInt(experience) || 0,
         wages: parseFloat(wages),
         wageType,
@@ -150,6 +152,18 @@ export default function LabourSignup() {
               onChangeText={setPhone}
               className="bg-slate-50 p-5 rounded-3xl border border-slate-200 text-lg"
             />
+          </View>
+
+          <View>
+            <Text className="text-slate-800 font-bold mb-2 ml-1 text-lg">Gender *</Text>
+            <View className="flex-row gap-4">
+              <TouchableOpacity onPress={() => setGender('male')} className={`flex-1 p-4 rounded-3xl border ${gender === 'male' ? 'bg-blue-50 border-blue-600' : 'bg-slate-50 border-slate-200'}`}>
+                <Text className={`text-center font-bold text-lg ${gender === 'male' ? 'text-blue-900' : 'text-slate-500'}`}>Male / पुरुष</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setGender('female')} className={`flex-1 p-4 rounded-3xl border ${gender === 'female' ? 'bg-blue-50 border-blue-600' : 'bg-slate-50 border-slate-200'}`}>
+                <Text className={`text-center font-bold text-lg ${gender === 'female' ? 'text-blue-900' : 'text-slate-500'}`}>Female / महिला</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View>
