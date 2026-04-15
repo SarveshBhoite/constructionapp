@@ -58,8 +58,8 @@ app.use((req, res, next) => {
   res.status(404).json({ error: `Path ${req.originalUrl} not found` });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://192.168.1.9:${PORT}`);
 });
 
 // Keep-alive to prevent premature exit with Prisma 7 Driver Adapters

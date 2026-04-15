@@ -56,16 +56,15 @@ export default function LabourSignup() {
   };
 
   const handleSignup = async () => {
-    // Validations
-    if (!name || !phone || !city || !selectedCategory || !image || !wages || !gender) {
-      Alert.alert('Error', 'Please fill all mandatory details including gender (कृपया सर्व माहिती भरा)');
-      return;
-    }
-
-    if (!/^\d{10}$/.test(phone)) {
-      Alert.alert('Error', 'Phone number must be 10 digits (मोबाईल नंबर 10 अंकी असावा)');
-      return;
-    }
+    // Detailed Validations
+    if (!name) return Alert.alert('Mandatory Field', 'Please enter your Full Name.');
+    if (!phone) return Alert.alert('Mandatory Field', 'Please enter your Phone Number.');
+    if (!/^\d{10}$/.test(phone)) return Alert.alert('Error', 'Phone number must be exactly 10 digits.');
+    if (!gender) return Alert.alert('Mandatory Field', 'Please select your Gender.');
+    if (!wages) return Alert.alert('Mandatory Field', 'Please enter your daily/hourly Wages.');
+    if (!city) return Alert.alert('Mandatory Field', 'Please enter your City.');
+    if (!selectedCategory) return Alert.alert('Mandatory Field', 'Please select a Work Category.');
+    if (!image) return Alert.alert('Mandatory Field', 'Please upload a Profile Photo.');
 
     setLoading(true);
     try {
@@ -115,6 +114,7 @@ export default function LabourSignup() {
         <Text className="text-slate-500 mb-8 text-lg">Create your professional profile</Text>
 
         {/* Profile Pic */}
+        <Text className="text-xl font-bold text-slate-800 mb-2 ml-1 text-center">Profile Photo *</Text>
         <View className="items-center mb-10">
           <TouchableOpacity onPress={pickImage} className="relative">
             <View className="w-32 h-32 rounded-[40px] bg-slate-100 border-4 border-blue-50 items-center justify-center overflow-hidden shadow-xl">
