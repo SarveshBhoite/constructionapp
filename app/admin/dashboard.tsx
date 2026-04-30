@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, Alert, Image, StatusBar, RefreshControl, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Users, ShieldCheck, Clock, MessageSquare, LogOut, Search, MapPin, CheckCircle2, ChevronRight, LayoutDashboard, UserCheck, X, FileText, ExternalLink } from 'lucide-react-native';
+import { Users, ShieldCheck, Clock, MessageSquare, LogOut, Search, MapPin, CheckCircle2, ChevronRight, LayoutDashboard, UserCheck, X, FileText, ExternalLink, User } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import axios from 'axios';
 
